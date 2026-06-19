@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Label Counter – Factory Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:        #0a0c10;
+    --surface:   #111520;
+    --surface2:  #181d2e;
+    --border:    #1e2540;
+    --accent:    #f5c518;
+    --green:     #00e676;
+    --red:       #ff4444;
+    --blue:      #4488ff;
+    --muted:     #4a5270;
+    --text:      #cdd6f4;
+    --text-dim:  #6c7a9c;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text-dim); font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 18px; }
+  #clock {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px; font-weight: 600;
+    color: var(--text-dim); letter-spacing: 2px;
+  }
+  .refresh-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 7px 16px; border-radius: 6px;
+    cursor: pointer; font-size: 13px; font-family: 'Inter', sans-serif;
+    transition: border-color .2s, color .2s;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #sync-status {
+    font-size: 12px; color: var(--text-dim);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .sync-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── Summary bar ── */
+  .summary-bar {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    flex: 1; min-width: 140px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .summary-card .s-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  .summary-card .s-value { font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 700; color: var(--accent); }
+  .summary-card.running .s-value { color: var(--green); }
+  .summary-card.idle    .s-value { color: #ffcc00; }
+  .summary-card.done    .s-value { color: var(--blue); }
+
+  /* ── Machine grid ── */
+  .section-title {
+    padding: 20px 28px 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase;
+  }
+  .machine-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px; padding: 0 28px 28px;
+  }
+
+  /* ── Machine card ── */
+  .machine-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color .25s, transform .15s;
+  }
+  .machine-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .machine-card.status-running { border-left: 4px solid var(--green); }
+  .machine-card.status-idle    { border-left: 4px solid #ffcc00; }
+  .machine-card.status-done    { border-left: 4px solid var(--blue); }
+  .machine-card.status-offline { border-left: 4px solid var(--muted); }
+
+  .card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .machine-id {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px; font-weight: 700; color: var(--accent);
+  }
+  .status-badge {
+    font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    padding: 4px 10px; border-radius: 20px;
+    text-transform: uppercase;
+  }
+  .badge-running { background: rgba(0,230,118,.15); color: var(--green); }
+  .badge-idle    { background: rgba(255,204,0,.12);  color: #ffcc00; }
+  .badge-done    { background: rgba(68,136,255,.15); color: var(--blue); }
+  .badge-offline { background: rgba(74,82,112,.2);   color: var(--muted); }
+
+  .card-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* info rows */
+  .info-row { display: flex; justify-content: space-between; align-items: center; }
+  .info-label { color: var(--text-dim); font-size: 12px; }
+  .info-value { font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 600; }
+
+  /* Progress bar */
+  .progress-wrap { margin-top: 4px; }
+  .progress-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+  .progress-bar-bg {
+    height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, #4488ff, #00e676);
+    transition: width .5s ease;
+  }
+
+  /* Speed gauge mini */
+  .gauge-row { display: flex; gap: 12px; margin-top: 6px; }
+  .gauge-mini {
+    flex: 1; background: var(--surface2); border-radius: 8px;
+    padding: 10px; text-align: center;
+  }
+  .gauge-mini canvas { display: block; margin: 0 auto; }
+  .gauge-mini .g-label { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  /* Counter chips */
+  .counter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 12px; flex: 1; min-width: 80px;
+    text-align: center;
+  }
+  .chip .c-val { font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); }
+  .chip .c-lab { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; }
+
+  .chip.highlight .c-val { color: var(--accent); }
+
+  /* Wastage section */
+  .wastage-toggle {
+    font-size: 11px; color: var(--text-dim); cursor: pointer;
+    padding: 6px 0; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+    user-select: none;
+  }
+  .wastage-toggle:hover { color: var(--accent); }
+  .wastage-grid {
+    display: none; grid-template-columns: repeat(4,1fr); gap: 6px; padding-top: 8px;
+  }
+  .wastage-grid.open { display: grid; }
+  .w-item { text-align: center; background: var(--surface2); border-radius: 5px; padding: 5px 4px; }
+  .w-item .w-code { font-size: 10px; color: var(--text-dim); }
+  .w-item .w-time { font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; }
+
+  /* Download bar */
+  .download-bar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    padding: 0 28px 32px;
+  }
+  .dl-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px;
+    text-decoration: none; transition: border-color .2s, color .2s;
+  }
+  .dl-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .dl-btn svg { width: 16px; height: 16px; }
+
+  /* Loading / error */
+  .loading { text-align: center; padding: 60px; color: var(--text-dim); font-size: 16px; }
+  .error-msg { color: var(--red); background: rgba(255,68,68,.08); border: 1px solid rgba(255,68,68,.2); border-radius: 8px; padding: 14px 20px; margin: 20px 28px; }
+
+  @media (max-width: 600px) {
+    header { padding: 12px 16px; }
+    .summary-bar, .machine-grid, .download-bar, .section-title { padding-left: 16px; padding-right: 16px; }
+    .machine-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">LABEL COUNTER <span>FACTORY MONITOR</span></div>
+  <div class="header-right">
+    <div id="sync-status"><div class="sync-dot"></div><span id="sync-text">Connecting…</span></div>
+    <div id="clock">--:--:--</div>
+    <button class="refresh-btn" onclick="fetchAll()">⟳ Refresh</button>
+  </div>
+</header>
+
+<div class="summary-bar" id="summary-bar">
+  <div class="summary-card"><div class="s-label">Total Machines</div><div class="s-value" id="s-total">–</div></div>
+  <div class="summary-card running"><div class="s-label">Running</div><div class="s-value" id="s-running">–</div></div>
+  <div class="summary-card idle"><div class="s-label">Idle</div><div class="s-value" id="s-idle">–</div></div>
+  <div class="summary-card done"><div class="s-label">Target Achieved</div><div class="s-value" id="s-done">–</div></div>
+  <div class="summary-card"><div class="s-label">Offline</div><div class="s-value" id="s-offline">–</div></div>
+</div>
+
+<div class="section-title">MACHINE STATUS</div>
+<div class="machine-grid" id="machine-grid">
+  <div class="loading">Loading machine data…</div>
+</div>
+
+<div class="section-title" style="padding-top:8px">DOWNLOAD</div>
+<div class="download-bar">
+  <a class="dl-btn" id="dl-sheet" href="#" onclick="downloadSheet(event)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
+    Download Google Sheet Data (CSV)
+  </a>
+  <a class="dl-btn" id="dl-report" href="#" onclick="downloadReport(event)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Download Dashboard Report (CSV)
+  </a>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// CONFIG – paste your Google Apps Script URL here
+// ──────────────────────────────────────────────
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbylgoFl7zHxpGiASfU6HaPkGZPClDSPQFuwjk7p1034Gss3aRfIgAOZeOzN_CkVCWSIBQ/exec';
+
+// Machine IDs to poll (add more as they come online)
+const MACHINES = ['PM00201', 'PM00202'];
+
+// Column index map (0-based, matching your 38-col sheet)
+const C = {
+  timestamp:0, machine:1, operator:2, operatorId:3, shift:4,
+  job:5, size:6, length:7, targetQty:8, extraQty:9,
+  totalTargetQty:10, counterM:11, counterPcs:12, progress:13,
+  speed:14, runDuration:15, status:16,
+  L1:17,L2:18,L3:19,L4:20,L5:21,L6:22,L7:23,L8:24,L9:25,L10:26,
+  L11:27,L12:28,L13:29,L14:30,L15:31,L16:32,L17:33,L18:34,
+  D1:35,D2:36,D3:37
+};
+
+const LOSS_CODES = ['L1','L2','L3','L4','L5','L6','L7','L8','L9','L10','L11','L12','L13','L14','L15','L16','L17','L18','D1','D2','D3'];
+
+let allData = {};   // { machineId: latestRow }
+let allRows = {};   // { machineId: allRows[] } for CSV export
+
+// ──────── Clock ────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ──────── Fetch one machine ────────
+async function fetchMachine(machineId) {
+  const url = `${WEBAPP_URL}?machine=${machineId}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const json = await resp.json();
+  if (json.error) throw new Error(json.error);
+  return json.rows || [];
+}
+
+// ──────── Fetch all machines ────────
+async function fetchAll() {
+  document.getElementById('sync-text').textContent = 'Syncing…';
+  let errors = [];
+
+  for (const mid of MACHINES) {
+    try {
+      const rows = await fetchMachine(mid);
+      allRows[mid] = rows;
+      if (rows.length > 0) {
+        // latest row = last row
+        allData[mid] = rows[rows.length - 1];
+      } else {
+        allData[mid] = null;
+      }
+    } catch (e) {
+      allData[mid] = null;
+      errors.push(`${mid}: ${e.message}`);
+    }
+  }
+
+  renderDashboard();
+  const t = new Date().toLocaleTimeString('en-GB');
+  document.getElementById('sync-text').textContent =
+    errors.length ? `Errors (${t})` : `Updated ${t}`;
+  document.querySelector('.sync-dot').style.background =
+    errors.length ? '#ff4444' : '#00e676';
+}
+
+// ──────── Status helper ────────
+function getStatus(row) {
+  if (!row) return 'offline';
+  const s = (row[C.status] || '').toUpperCase();
+  if (s.includes('RUNNING'))  return 'running';
+  if (s.includes('TARGET'))   return 'done';
+  if (s.includes('IDLE'))     return 'idle';
+  return 'idle';
+}
+
+// ──────── Mini canvas gauge ────────
+function drawGauge(canvas, val, max, color) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w/2, cy = h*0.88;
+  const r = w*0.38;
+  ctx.clearRect(0, 0, w, h);
+
+  // bg arc
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, 0, false);
+  ctx.strokeStyle = '#1e2540'; ctx.lineWidth = 8; ctx.stroke();
+
+  // fill arc
+  const ratio = Math.min(val / max, 1);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, Math.PI + ratio * Math.PI, false);
+  ctx.strokeStyle = color; ctx.lineWidth = 8; ctx.stroke();
+
+  // needle
+  const angle = Math.PI + ratio * Math.PI;
+  const nx = cx + (r-2) * Math.cos(angle);
+  const ny = cy + (r-2) * Math.sin(angle);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy); ctx.lineTo(nx, ny);
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, 2*Math.PI);
+  ctx.fillStyle = '#ffffff'; ctx.fill();
+
+  // value
+  ctx.font = `bold ${w*0.18}px Rajdhani,sans-serif`;
+  ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(val.toFixed(1), cx, cy - r*0.35);
+}
+
+// ──────── Render one card ────────
+function renderCard(mid, row) {
+  const status = getStatus(row);
+  const badgeClass = { running:'badge-running', idle:'badge-idle', done:'badge-done', offline:'badge-offline' }[status];
+  const badgeText  = { running:'Running', idle:'Idle', done:'Target Achieved', offline:'Offline' }[status];
+
+  const v = (idx) => row ? (row[idx] ?? '–') : '–';
+  const pct = row ? Math.round((parseFloat(row[C.progress]) || 0) * 100) : 0;
+  const speed = row ? (parseFloat(row[C.speed]) || 0) : 0;
+  const progress_pct = Math.min(pct, 100);
+
+  // wastage
+  let wastageHTML = '';
+  if (row) {
+    const nonZero = LOSS_CODES.filter(code => {
+      const t = row[C[code]] || '00:00:00';
+      return t !== '00:00:00' && t !== '–' && t !== '';
+    });
+    if (nonZero.length > 0) {
+      wastageHTML = `
+        <div class="wastage-toggle" onclick="toggleWastage('${mid}')">▶ Wastage / Loss Times (${nonZero.length} codes)</div>
+        <div class="wastage-grid" id="wastage-${mid}">
+          ${nonZero.map(code => `
+            <div class="w-item">
+              <div class="w-code">${code}</div>
+              <div class="w-time">${row[C[code]]}</div>
+            </div>`).join('')}
+        </div>`;
+    }
+  }
+
+  return `
+  <div class="machine-card status-${status}" id="card-${mid}">
+    <div class="card-header">
+      <div class="machine-id">${mid}</div>
+      <div class="status-badge ${badgeClass}">${badgeText}</div>
+    </div>
+    <div class="card-body">
+
+      <div class="info-row">
+        <span class="info-label">Operator</span>
+        <span class="info-value">${v(C.operator)} <span style="color:var(--text-dim);font-size:12px">#${v(C.operatorId)} · ${v(C.shift)}</span></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Job / Size</span>
+        <span class="info-value">${v(C.job)} <span style="color:var(--text-dim)">/ ${v(C.size)}</span></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Length (mm)</span>
+        <span class="info-value">${v(C.length)}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Run Duration</span>
+        <span class="info-value" style="color:var(--blue)">${v(C.runDuration)}</span>
+      </div>
+
+      <div class="counter-chips">
+        <div class="chip highlight">
+          <div class="c-val">${v(C.counterPcs)}</div>
+          <div class="c-lab">Counter (pcs)</div>
+        </div>
+        <div class="chip">
+          <div class="c-val">${v(C.counterM)}</div>
+          <div class="c-lab">Counter (m)</div>
+        </div>
+        <div class="chip">
+          <div class="c-val">${v(C.targetQty)}</div>
+          <div class="c-lab">Base Qty</div>
+        </div>
+        <div class="chip">
+          <div class="c-val">${v(C.extraQty)}</div>
+          <div class="c-lab">Extra Qty</div>
+        </div>
+        <div class="chip">
+          <div class="c-val">${v(C.totalTargetQty)}</div>
+          <div class="c-lab">Total Target</div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span style="color:var(--text-dim)">Progress</span>
+          <span style="color:var(--green);font-weight:600">${progress_pct}%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" style="width:${progress_pct}%"></div>
+        </div>
+      </div>
+
+      <div class="gauge-row">
+        <div class="gauge-mini">
+          <canvas id="g-speed-${mid}" width="100" height="60"></canvas>
+          <div class="g-label">Speed (0–50)</div>
+        </div>
+        <div class="gauge-mini">
+          <canvas id="g-prog-${mid}" width="100" height="60"></canvas>
+          <div class="g-label">Progress %</div>
+        </div>
+      </div>
+
+      ${wastageHTML}
+
+    </div>
+  </div>`;
+}
+
+// ──────── Toggle wastage ────────
+function toggleWastage(mid) {
+  const el = document.getElementById(`wastage-${mid}`);
+  if (!el) return;
+  el.classList.toggle('open');
+  const btn = el.previousElementSibling;
+  btn.textContent = btn.textContent.replace(el.classList.contains('open') ? '▶' : '▼',
+                                             el.classList.contains('open') ? '▼' : '▶');
+}
+
+// ──────── Render dashboard ────────
+function renderDashboard() {
+  let running=0, idle=0, done=0, offline=0;
+  let html = '';
+
+  for (const mid of MACHINES) {
+    const row = allData[mid];
+    const s = getStatus(row);
+    if (s==='running') running++;
+    else if (s==='idle') idle++;
+    else if (s==='done') done++;
+    else offline++;
+    html += renderCard(mid, row);
+  }
+
+  document.getElementById('machine-grid').innerHTML = html;
+  document.getElementById('s-total').textContent   = MACHINES.length;
+  document.getElementById('s-running').textContent = running;
+  document.getElementById('s-idle').textContent    = idle;
+  document.getElementById('s-done').textContent    = done;
+  document.getElementById('s-offline').textContent = offline;
+
+  // Draw canvas gauges
+  for (const mid of MACHINES) {
+    const row = allData[mid];
+    const speed = row ? (parseFloat(row[C.speed]) || 0) : 0;
+    const pct   = row ? Math.min(Math.round((parseFloat(row[C.progress])||0)*100),100) : 0;
+    const csSpeed = document.getElementById(`g-speed-${mid}`);
+    const csProg  = document.getElementById(`g-prog-${mid}`);
+    if (csSpeed) drawGauge(csSpeed, speed, 50, '#f5c518');
+    if (csProg)  drawGauge(csProg,  pct,  100, '#00e676');
+  }
+}
+
+// ──────── Download: CSV from Sheet data ────────
+function downloadSheet(e) {
+  e.preventDefault();
+  const headers = [
+    'Timestamp','Machine ID','Operator','Operator ID','Shift',
+    'Job','Size','Length(mm)','Target Qty','Extra Qty','Total Target Qty',
+    'Counter(m)','Counter(pcs)','Progress','Speed(0-50)','Run Duration','Status',
+    ...LOSS_CODES
+  ];
+  let rows = [headers];
+  for (const mid of MACHINES) {
+    const machineRows = allRows[mid] || [];
+    for (const r of machineRows) {
+      rows.push(r.map(v => `"${String(v).replace(/"/g,'""')}"`));
+    }
+  }
+  downloadCSV(rows, 'factory_sheet_data.csv');
+}
+
+// ──────── Download: Dashboard summary report ────────
+function downloadReport(e) {
+  e.preventDefault();
+  const headers = ['Machine','Status','Operator','Shift','Job','Size','Counter(pcs)','Counter(m)','Base Qty','Extra Qty','Total Target','Progress%','Speed(0-50)','Run Duration'];
+  let rows = [headers];
+  for (const mid of MACHINES) {
+    const row = allData[mid];
+    if (!row) { rows.push([mid,'Offline','–','–','–','–','–','–','–','–','–','–','–','–']); continue; }
+    const pct = Math.round((parseFloat(row[C.progress])||0)*100);
+    rows.push([
+      mid,
+      row[C.status], row[C.operator], row[C.shift],
+      row[C.job], row[C.size],
+      row[C.counterPcs], row[C.counterM],
+      row[C.targetQty], row[C.extraQty], row[C.totalTargetQty],
+      pct + '%', row[C.speed], row[C.runDuration]
+    ].map(v => `"${String(v??'').replace(/"/g,'""')}"`));
+  }
+  downloadCSV(rows, 'factory_dashboard_report.csv');
+}
+
+function downloadCSV(rows, filename) {
+  const csv = rows.map(r => Array.isArray(r) ? r.join(',') : r).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+}
+
+// ──────── Auto refresh every 30s ────────
+fetchAll();
+setInterval(fetchAll, 30000);
+</script>
+</body>
+</html>
