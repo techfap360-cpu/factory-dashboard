@@ -52,7 +52,7 @@
   .clock-wrap { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
   #clock-date {
     font-family: 'Inter', sans-serif;
-    font-size: 18px; font-weight: 500;
+    font-size: 11px; font-weight: 500;
     color: var(--text-dim); letter-spacing: .5px;
   }
   #clock {
@@ -364,7 +364,7 @@
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbylgoFl7zHxpGiASfU6HaPkGZPClDSPQFuwjk7p1034Gss3aRfIgAOZeOzN_CkVCWSIBQ/exec';
 
 // Machine IDs to poll (add more as they come online)
-const MACHINES = ['PM00201', 'PM00202', 'PM00203'];
+const MACHINES = ['PM00201', 'PM00202'];
 
 // Column index map (0-based, matching your 38-col sheet)
 const C = {
@@ -751,7 +751,18 @@ function viewMachineSheet(e, mid) {
   dataRows.forEach((row, i) => {
     html += `<tr><th class="row-num">${i + 2}</th>`;
     for (let c = 0; c < colCount; c++) {
-      html += `<td>${row[c] !== undefined && row[c] !== null ? row[c] : ''}</td>`;
+      let cellVal = row[c] !== undefined && row[c] !== null ? row[c] : '';
+      // Column A (index 0) = Timestamp → format as "19 June 2026 7:40 AM"
+      if (c === 0 && cellVal !== '') {
+        const d = new Date(cellVal);
+        if (!isNaN(d.getTime())) {
+          cellVal = d.toLocaleString('en-GB', {
+            day: 'numeric', month: 'long', year: 'numeric',
+            hour: 'numeric', minute: '2-digit', hour12: true
+          }).replace(',', '');
+        }
+      }
+      html += `<td>${cellVal}</td>`;
     }
     html += '</tr>';
   });
