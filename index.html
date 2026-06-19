@@ -49,6 +49,12 @@
   }
   .logo span { color: var(--text-dim); font-weight: 400; }
   .header-right { display: flex; align-items: center; gap: 18px; }
+  .clock-wrap { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+  #clock-date {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px; font-weight: 500;
+    color: var(--text-dim); letter-spacing: .5px;
+  }
   #clock {
     font-family: 'Rajdhani', sans-serif;
     font-size: 18px; font-weight: 600;
@@ -237,7 +243,10 @@
   <div class="logo">LABEL COUNTER <span>FACTORY MONITOR</span></div>
   <div class="header-right">
     <div id="sync-status"><div class="sync-dot"></div><span id="sync-text">Connecting…</span></div>
-    <div id="clock">--:--:--</div>
+    <div class="clock-wrap">
+      <div id="clock-date">-- ----- ----</div>
+      <div id="clock">--:--:-- --</div>
+    </div>
     <button class="refresh-btn" onclick="fetchAll()">⟳ Refresh</button>
   </div>
 </header>
@@ -274,7 +283,7 @@
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbylgoFl7zHxpGiASfU6HaPkGZPClDSPQFuwjk7p1034Gss3aRfIgAOZeOzN_CkVCWSIBQ/exec';
 
 // Machine IDs to poll (add more as they come online)
-const MACHINES = ['PM00201'];
+const MACHINES = ['PM00201', 'PM00202'];
 
 // Column index map (0-based, matching your 38-col sheet)
 const C = {
@@ -295,8 +304,10 @@ let allRows = {};   // { machineId: allRows[] } for CSV export
 // ──────── Clock ────────
 function updateClock() {
   const now = new Date();
+  document.getElementById('clock-date').textContent =
+    now.toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
   document.getElementById('clock').textContent =
-    now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true});
 }
 setInterval(updateClock, 1000); updateClock();
 
