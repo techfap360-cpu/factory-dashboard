@@ -354,6 +354,10 @@ function getStatus(row) {
 // to 1899-12-30, then JSON converts it to a UTC ISO string. That shifts the
 // real local time backward by the timezone offset, so we add it back here.
 const SHEET_TZ_OFFSET_HOURS = 6;
+// Extra fixed drift correction (in seconds) on top of the timezone offset.
+// Observed: values were running 6 min 40 sec (400 sec) ahead of the sheet's
+// real time even after the timezone fix, so we subtract that here.
+const SHEET_EXTRA_OFFSET_SECONDS = -400;
 
 // ──────── Duration formatter (HH:MM:SS only, no date) ────────
 function formatDuration(val) {
@@ -363,11 +367,12 @@ function formatDuration(val) {
 
   // Case 1: ISO datetime string from Google Sheets (e.g. 1899-12-29T18:06:40.000Z)
   // This is a UTC-serialized Time cell; convert back to the sheet's local time
-  // by adding the timezone offset, then keep only HH:MM:SS.
+  // by adding the timezone offset (and a small drift correction), then keep
+  // only HH:MM:SS.
   const isoMatch = str.match(/T(\d{2}):(\d{2}):(\d{2})/);
   if (isoMatch) {
     let totalSeconds = (+isoMatch[1]) * 3600 + (+isoMatch[2]) * 60 + (+isoMatch[3]);
-    totalSeconds = ((totalSeconds + SHEET_TZ_OFFSET_HOURS * 3600) % 86400 + 86400) % 86400;
+    totalSeconds = ((totalSeconds + SHEET_TZ_OFFSET_HOURS * 3600 + SHEET_EXTRA_OFFSET_SECONDS) % 86400 + 86400) % 86400;
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = totalSeconds % 60;
