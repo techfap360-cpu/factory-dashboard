@@ -193,6 +193,18 @@
   .w-item .w-code { font-size: 10px; color: var(--text-dim); }
   .w-item .w-time { font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; }
 
+  /* Per-machine download */
+  .card-download { padding-top: 10px; border-top: 1px solid var(--border); margin-top: 4px; }
+  .dl-btn-mini {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    width: 100%; padding: 9px 14px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text-dim);
+    cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;
+    text-decoration: none; transition: border-color .2s, color .2s, background .2s;
+  }
+  .dl-btn-mini:hover { border-color: var(--accent); color: var(--accent); background: rgba(245,197,24,.06); }
+  .dl-btn-mini svg { width: 14px; height: 14px; flex-shrink: 0; }
+
   /* Download bar */
   .download-bar {
     display: flex; gap: 10px; flex-wrap: wrap;
@@ -337,6 +349,45 @@ function getStatus(row) {
   return 'idle';
 }
 
+// ──────── Duration formatter (HH:MM:SS only, no date) ────────
+function formatDuration(val) {
+  if (val === undefined || val === null || val === '') return '–';
+  const str = String(val).trim();
+  if (str === '–') return '–';
+
+  // Case 1: ISO datetime string from Google Sheets (e.g. 1899-12-29T18:06:40.000Z)
+  // The date portion is just the spreadsheet's serial-date epoch artifact;
+  // only the time-of-day portion represents the actual duration.
+  const isoMatch = str.match(/T(\d{2}):(\d{2}):(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}:${isoMatch[2]}:${isoMatch[3]}`;
+  }
+
+  // Case 2: already HH:MM:SS (or H:MM:SS)
+  const hmsMatch = str.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
+  if (hmsMatch) {
+    return `${hmsMatch[1].padStart(2,'0')}:${hmsMatch[2]}:${hmsMatch[3]}`;
+  }
+
+  // Case 3: numeric serial value (Google Sheets stores time as fraction of a day)
+  const num = parseFloat(str);
+  if (!isNaN(num) && /^-?\d+(\.\d+)?$/.test(str)) {
+    const totalSeconds = Math.round((num % 1) * 86400);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  // Fallback: try parsing as a full Date and extract time-of-day (UTC)
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}:${String(d.getUTCSeconds()).padStart(2,'0')}`;
+  }
+
+  return str; // unrecognized format, return as-is
+}
+
 // ──────── Mini canvas gauge ────────
 function drawGauge(canvas, val, max, color) {
   const ctx = canvas.getContext('2d');
@@ -398,7 +449,7 @@ function renderCard(mid, row) {
           ${nonZero.map(code => `
             <div class="w-item">
               <div class="w-code">${code}</div>
-              <div class="w-time">${row[C[code]]}</div>
+              <div class="w-time">${formatDuration(row[C[code]])}</div>
             </div>`).join('')}
         </div>`;
     }
@@ -426,7 +477,7 @@ function renderCard(mid, row) {
       </div>
       <div class="info-row">
         <span class="info-label">Run Duration</span>
-        <span class="info-value" style="color:var(--blue)">${v(C.runDuration)}</span>
+        <span class="info-value" style="color:var(--blue)">${formatDuration(v(C.runDuration))}</span>
       </div>
 
       <div class="counter-chips">
@@ -475,6 +526,13 @@ function renderCard(mid, row) {
 
       ${wastageHTML}
 
+      <div class="card-download">
+        <a class="dl-btn-mini" href="#" onclick="downloadMachineSheet(event, '${mid}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
+          Download ${mid} Sheet (CSV)
+        </a>
+      </div>
+
     </div>
   </div>`;
 }
@@ -521,6 +579,28 @@ function renderDashboard() {
     if (csSpeed) drawGauge(csSpeed, speed, 50, '#f5c518');
     if (csProg)  drawGauge(csProg,  pct,  100, '#00e676');
   }
+}
+
+// ──────── Download: single machine's Google Sheet data ────────
+function downloadMachineSheet(e, mid) {
+  e.preventDefault();
+  const headers = [
+    'Timestamp','Machine ID','Operator','Operator ID','Shift',
+    'Job','Size','Length(mm)','Target Qty','Extra Qty','Total Target Qty',
+    'Counter(m)','Counter(pcs)','Progress','Speed(0-50)','Run Duration','Status',
+    ...LOSS_CODES
+  ];
+  let rows = [headers];
+  const machineRows = allRows[mid] || [];
+  for (const r of machineRows) {
+    const rowCopy = r.slice();
+    rowCopy[C.runDuration] = formatDuration(rowCopy[C.runDuration]);
+    for (const code of LOSS_CODES) {
+      rowCopy[C[code]] = formatDuration(rowCopy[C[code]]);
+    }
+    rows.push(rowCopy.map(v => `"${String(v).replace(/"/g,'""')}"`));
+  }
+  downloadCSV(rows, `${mid}_sheet_data.csv`);
 }
 
 // ──────── Download: CSV from Sheet data ────────
