@@ -695,33 +695,37 @@ function renderDashboard() {
 
 // ──────── Build formatted header + rows for a single machine ────────
 const SHEET_HEADERS = [
-  'Timestamp','Machine ID','Operator','Operator ID','Shift',
+  'Date','Time','Machine ID','Operator','Operator ID','Shift',
   'Job','Size','Length(mm)','Target Qty','Extra Qty','Total Target Qty',
   'Counter(m)','Counter(pcs)','Progress','Speed(0-50)','Run Duration','Status',
   ...LOSS_CODES
 ];
 
-function formatTimestamp(val) {
+function formatDate(val) {
   if (val === undefined || val === null || val === '') return '';
   const d = new Date(val);
   if (isNaN(d.getTime())) return String(val);
-  return d.toLocaleString('en-GB', {
-    day: 'numeric', month: 'long', year: 'numeric',
-    hour: 'numeric', minute: '2-digit', hour12: true
-  }).replace(',', '');
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function formatTime(val) {
+  if (val === undefined || val === null || val === '') return '';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return String(val);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function getMachineSheetRows(mid) {
   const machineRows = allRows[mid] || [];
   return machineRows.map(r => {
+    // Split Timestamp into Date (col A) and Time (col B), shifting all other cols right by 1
     const rowCopy = r.slice();
-    // Format Timestamp (column A) as "19 June 2026 7:40 AM"
-    if (rowCopy[C.timestamp] !== undefined && rowCopy[C.timestamp] !== '') {
-      rowCopy[C.timestamp] = formatTimestamp(rowCopy[C.timestamp]);
-    }
-    rowCopy[C.runDuration] = formatDuration(rowCopy[C.runDuration]);
+    const tsVal = rowCopy[C.timestamp];
+    rowCopy.splice(0, 1, formatDate(tsVal), formatTime(tsVal));
+    // All original column indices are now shifted +1
+    rowCopy[C.runDuration + 1] = formatDuration(rowCopy[C.runDuration + 1]);
     for (const code of LOSS_CODES) {
-      rowCopy[C[code]] = formatDuration(rowCopy[C[code]]);
+      rowCopy[C[code] + 1] = formatDuration(rowCopy[C[code] + 1]);
     }
     return rowCopy;
   });
@@ -791,17 +795,11 @@ document.addEventListener('keydown', (e) => {
 // ──────── Download: CSV from Sheet data ────────
 function downloadSheet(e) {
   e.preventDefault();
-  const headers = [
-    'Timestamp','Machine ID','Operator','Operator ID','Shift',
-    'Job','Size','Length(mm)','Target Qty','Extra Qty','Total Target Qty',
-    'Counter(m)','Counter(pcs)','Progress','Speed(0-50)','Run Duration','Status',
-    ...LOSS_CODES
-  ];
-  let rows = [headers];
+  let rows = [SHEET_HEADERS];
   for (const mid of MACHINES) {
-    const machineRows = allRows[mid] || [];
-    for (const r of machineRows) {
-      rows.push(r.map(v => `"${String(v).replace(/"/g,'""')}"`));
+    const dataRows = getMachineSheetRows(mid);
+    for (const r of dataRows) {
+      rows.push(r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`));
     }
   }
   downloadCSV(rows, 'factory_sheet_data.csv');
