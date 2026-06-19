@@ -701,10 +701,24 @@ const SHEET_HEADERS = [
   ...LOSS_CODES
 ];
 
+function formatTimestamp(val) {
+  if (val === undefined || val === null || val === '') return '';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return String(val);
+  return d.toLocaleString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true
+  }).replace(',', '');
+}
+
 function getMachineSheetRows(mid) {
   const machineRows = allRows[mid] || [];
   return machineRows.map(r => {
     const rowCopy = r.slice();
+    // Format Timestamp (column A) as "19 June 2026 7:40 AM"
+    if (rowCopy[C.timestamp] !== undefined && rowCopy[C.timestamp] !== '') {
+      rowCopy[C.timestamp] = formatTimestamp(rowCopy[C.timestamp]);
+    }
     rowCopy[C.runDuration] = formatDuration(rowCopy[C.runDuration]);
     for (const code of LOSS_CODES) {
       rowCopy[C[code]] = formatDuration(rowCopy[C[code]]);
@@ -751,17 +765,7 @@ function viewMachineSheet(e, mid) {
   dataRows.forEach((row, i) => {
     html += `<tr><th class="row-num">${i + 2}</th>`;
     for (let c = 0; c < colCount; c++) {
-      let cellVal = row[c] !== undefined && row[c] !== null ? row[c] : '';
-      // Column A (index 0) = Timestamp → format as "19 June 2026 7:40 AM"
-      if (c === 0 && cellVal !== '') {
-        const d = new Date(cellVal);
-        if (!isNaN(d.getTime())) {
-          cellVal = d.toLocaleString('en-GB', {
-            day: 'numeric', month: 'long', year: 'numeric',
-            hour: 'numeric', minute: '2-digit', hour12: true
-          }).replace(',', '');
-        }
-      }
+      const cellVal = row[c] !== undefined && row[c] !== null ? row[c] : '';
       html += `<td>${cellVal}</td>`;
     }
     html += '</tr>';
