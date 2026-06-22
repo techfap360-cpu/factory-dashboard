@@ -1120,42 +1120,31 @@ function buildDaySummary() {
     </div>
   </div>`;
 
-  // Machine cards (mobile-friendly)
+  // Machine table
   html += `<div>
     <div class="sum-section-title">🏭 Per Machine Breakdown</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
+    <div class="sum-table-wrap"><table class="sum-table">
+      <thead><tr>
+        <th>Machine</th><th>Status</th><th>Job</th><th>Shift</th>
+        <th>PCS</th><th>Meters</th><th>Target</th><th>Progress</th><th>Entries</th>
+      </tr></thead><tbody>
       ${machineStats.map(s => {
         const sc = {running:'badge-running',idle:'badge-idle',done:'badge-done',offline:'badge-offline','No Data':'badge-offline'}[s.status]||'badge-offline';
-        const progColor = s.progress>=100?'var(--green)':s.progress>=60?'var(--blue)':'var(--red)';
-        return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;color:var(--accent)">${s.mid}</span>
-            <span class="status-pill ${sc}">${s.status}</span>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
-            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
-              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--accent)">${s.pcs.toLocaleString()}</div>
-              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">TOTAL PCS</div>
-            </div>
-            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
-              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--blue)">${s.m}</div>
-              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">METERS</div>
-            </div>
-            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
-              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--text-dim)">${s.target.toLocaleString()}</div>
-              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">TARGET</div>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:5px;">
-            <span>Job: <b style="color:var(--text)">${s.job}</b> &nbsp;|&nbsp; Shift: <b style="color:var(--text)">${s.shift}</b> &nbsp;|&nbsp; Entries: <b style="color:var(--text)">${s.rows}</b></span>
-            <span style="color:${progColor};font-weight:700">${s.progress}%</span>
-          </div>
-          <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
-            <div style="height:100%;border-radius:4px;width:${s.progress}%;background:linear-gradient(90deg,var(--blue),${progColor});transition:width .4s"></div>
-          </div>
-        </div>`;
+        const pBar = `<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${s.progress}%"></div></div>`;
+        return `<tr>
+          <td class="mid-cell">${s.mid}</td>
+          <td><span class="status-pill ${sc}">${s.status}</span></td>
+          <td style="color:var(--text)">${s.job}</td>
+          <td style="color:var(--text-dim)">${s.shift}</td>
+          <td style="color:var(--accent);font-weight:700">${s.pcs.toLocaleString()}</td>
+          <td style="color:var(--blue)">${s.m}</td>
+          <td style="color:var(--text-dim)">${s.target.toLocaleString()}</td>
+          <td style="color:var(--green)">${s.progress}% ${pBar}</td>
+          <td style="color:var(--text-dim)">${s.rows}</td>
+        </tr>`;
       }).join('')}
-    </div>
+      </tbody>
+    </table></div>
   </div>`;
 
   // Shift summary
@@ -1310,41 +1299,26 @@ function buildMonthlySummary() {
     </div>
   </div>`;
 
-  // Machine breakdown — cards
+  // Machine breakdown
   html += `<div>
     <div class="sum-section-title">🏭 Per Machine — This Month</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
+    <div class="sum-table-wrap"><table class="sum-table">
+      <thead><tr>
+        <th>Machine</th><th>PCS</th><th>Meters</th><th>Target</th><th>Progress</th><th>Entries</th>
+      </tr></thead><tbody>
       ${machineMonthStats.map(s => {
-        const progColor = s.progress>=100?'var(--green)':s.progress>=60?'var(--blue)':'var(--red)';
-        return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;color:var(--accent)">${s.mid}</span>
-            <span style="font-size:11px;color:var(--text-dim)">${s.rows} entries</span>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
-            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
-              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--accent)">${s.pcs.toLocaleString()}</div>
-              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">TOTAL PCS</div>
-            </div>
-            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
-              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--blue)">${s.m}</div>
-              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">METERS</div>
-            </div>
-            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
-              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--text-dim)">${s.target.toLocaleString()}</div>
-              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">TARGET</div>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-bottom:5px;">
-            <span style="color:var(--text-dim)">Monthly Progress</span>
-            <span style="color:${progColor};font-weight:700">${s.progress}%</span>
-          </div>
-          <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
-            <div style="height:100%;border-radius:4px;width:${s.progress}%;background:linear-gradient(90deg,var(--blue),${progColor});transition:width .4s"></div>
-          </div>
-        </div>`;
+        const pBar = `<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${s.progress}%"></div></div>`;
+        return `<tr>
+          <td class="mid-cell">${s.mid}</td>
+          <td style="color:var(--accent);font-weight:700">${s.pcs.toLocaleString()}</td>
+          <td style="color:var(--blue)">${s.m}</td>
+          <td style="color:var(--text-dim)">${s.target.toLocaleString()}</td>
+          <td style="color:var(--green)">${s.progress}% ${pBar}</td>
+          <td style="color:var(--text-dim)">${s.rows}</td>
+        </tr>`;
       }).join('')}
-    </div>
+      </tbody>
+    </table></div>
   </div>`;
 
   // Daily calendar strip
