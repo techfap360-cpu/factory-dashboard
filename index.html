@@ -292,7 +292,7 @@
   .sheet-table thead th.row-num { z-index: 3; }
   .sheet-table tbody th { background: #e8f0fe; }
 
-  /* ── Summary Buttons ── */
+  /* ── Analytics Hub Button ── */
   .summary-btn-bar {
     display: flex; gap: 12px; flex-wrap: wrap;
     padding: 14px 28px 0;
@@ -303,68 +303,146 @@
     cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
     letter-spacing: .5px; transition: all .2s; text-transform: uppercase;
   }
-  .sum-btn.day  { background: linear-gradient(135deg,#1a3a6e,#2255b8); color: #7bb3ff; border: 1px solid #2255b8; }
-  .sum-btn.day:hover  { background: linear-gradient(135deg,#2255b8,#3366cc); color:#fff; box-shadow: 0 0 18px rgba(68,136,255,.35); }
-  .sum-btn.month { background: linear-gradient(135deg,#1a4a2e,#1a7a3a); color: #55dd88; border: 1px solid #1a7a3a; }
-  .sum-btn.month:hover { background: linear-gradient(135deg,#1a7a3a,#22aa55); color:#fff; box-shadow: 0 0 18px rgba(0,230,118,.3); }
+  .sum-btn.analytics-hub {
+    background: linear-gradient(135deg, #1a1f35, #242c4a);
+    color: var(--accent);
+    border: 1px solid rgba(245,197,24,.3);
+    position: relative; overflow: hidden;
+  }
+  .sum-btn.analytics-hub::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(245,197,24,.08), rgba(68,136,255,.08));
+    opacity: 0; transition: opacity .2s;
+  }
+  .sum-btn.analytics-hub:hover::before { opacity: 1; }
+  .sum-btn.analytics-hub:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 24px rgba(245,197,24,.2), 0 4px 16px rgba(0,0,0,.4);
+    transform: translateY(-1px);
+  }
   .sum-btn svg { width:16px; height:16px; }
 
-  /* ── Summary Modal ── */
+  /* ── Analytics Hub Modal ── */
   .sum-overlay {
     display: none; position: fixed; inset: 0; z-index: 500;
-    background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
+    background: rgba(0,0,0,.82); backdrop-filter: blur(6px);
     align-items: flex-start; justify-content: center;
-    padding: 24px 16px; overflow-y: auto;
+    padding: 20px 16px; overflow-y: auto;
   }
   .sum-overlay.open { display: flex; }
   .sum-modal {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 16px; width: 100%; max-width: 980px;
-    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    border-radius: 18px; width: 100%; max-width: 1020px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(245,197,24,.06);
     overflow: hidden; margin: auto;
   }
+
+  /* Modal top bar */
   .sum-modal-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 24px; border-bottom: 1px solid var(--border);
-    background: var(--surface2);
+    padding: 16px 24px 0; background: var(--surface2);
+    border-bottom: none;
   }
-  .sum-modal-title {
-    font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700;
-    color: var(--text); display: flex; align-items: center; gap: 10px;
+  .sum-modal-brand {
+    display: flex; align-items: center; gap: 10px;
   }
-  .sum-modal-title .icon-day  { color: var(--blue); }
-  .sum-modal-title .icon-month { color: var(--green); }
+  .sum-modal-brand .brand-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, rgba(245,197,24,.2), rgba(68,136,255,.15));
+    border: 1px solid rgba(245,197,24,.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .sum-modal-brand .brand-label {
+    font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700;
+    color: var(--text); letter-spacing: .5px;
+  }
+  .sum-modal-brand .brand-sub {
+    font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase;
+  }
   .sum-close {
     background: transparent; border: 1px solid var(--border);
-    color: var(--text-dim); width: 32px; height: 32px; border-radius: 6px;
-    cursor: pointer; font-size: 16px; transition: all .2s;
+    color: var(--text-dim); width: 32px; height: 32px; border-radius: 8px;
+    cursor: pointer; font-size: 14px; transition: all .2s;
+    display: flex; align-items: center; justify-content: center;
   }
-  .sum-close:hover { border-color: var(--red); color: var(--red); }
-  .sum-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+  .sum-close:hover { border-color: var(--red); color: var(--red); background: rgba(255,68,68,.08); }
 
-  /* KPI row */
-  .kpi-row { display: flex; gap: 12px; flex-wrap: wrap; }
-  .kpi-card {
-    flex: 1; min-width: 130px; background: var(--surface2);
-    border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px 16px; text-align: center;
+  /* Tab bar */
+  .sum-tabs {
+    display: flex; gap: 0; padding: 12px 24px 0; background: var(--surface2);
+    border-bottom: 1px solid var(--border);
   }
-  .kpi-card .kpi-val {
-    font-family: 'Rajdhani', sans-serif; font-size: 26px; font-weight: 700;
+  .sum-tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 20px; font-family: 'Inter', sans-serif;
+    font-size: 12px; font-weight: 600; letter-spacing: .5px;
+    text-transform: uppercase; cursor: pointer; border: none;
+    background: transparent; color: var(--text-dim);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all .2s; border-radius: 6px 6px 0 0;
   }
-  .kpi-card .kpi-lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
-  .kpi-card.blue .kpi-val { color: var(--blue); }
-  .kpi-card.green .kpi-val { color: var(--green); }
-  .kpi-card.yellow .kpi-val { color: var(--accent); }
-  .kpi-card.red .kpi-val { color: var(--red); }
-  .kpi-card.purple .kpi-val { color: #bb86fc; }
+  .sum-tab:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .sum-tab.active.tab-day   { color: var(--blue);  border-bottom-color: var(--blue);  background: rgba(68,136,255,.06); }
+  .sum-tab.active.tab-month { color: var(--green); border-bottom-color: var(--green); background: rgba(0,230,118,.05); }
+  .sum-tab.active.tab-year  { color: var(--accent);border-bottom-color: var(--accent);background: rgba(245,197,24,.06); }
+  .sum-tab svg { width: 14px; height: 14px; }
+
+  /* Tab panels */
+  .sum-panel { display: none; }
+  .sum-panel.active { display: block; }
+  .sum-body { padding: 22px 24px; display: flex; flex-direction: column; gap: 22px; max-height: 78vh; overflow-y: auto; }
+
+  /* ── Scrollbar styling ── */
+  .sum-body::-webkit-scrollbar { width: 5px; }
+  .sum-body::-webkit-scrollbar-track { background: var(--surface); }
+  .sum-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .sum-body::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
   /* Section heading inside modal */
   .sum-section-title {
-    font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 600;
-    color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase;
-    border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 12px;
+    font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--text-dim); letter-spacing: 2.5px; text-transform: uppercase;
+    border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
   }
+  .sum-section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Upgraded KPI Cards ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .kpi-card {
+    background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; text-align: center;
+    position: relative; overflow: hidden;
+    transition: border-color .2s, transform .15s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 12px 12px 0 0;
+  }
+  .kpi-card.blue::before  { background: var(--blue); }
+  .kpi-card.green::before { background: var(--green); }
+  .kpi-card.yellow::before { background: var(--accent); }
+  .kpi-card.red::before   { background: var(--red); }
+  .kpi-card.purple::before { background: #bb86fc; }
+  .kpi-card.orange::before { background: #ff9800; }
+  .kpi-card .kpi-val {
+    font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 700; line-height: 1;
+  }
+  .kpi-card .kpi-lbl {
+    font-size: 9px; color: var(--text-dim); text-transform: uppercase;
+    letter-spacing: 1.2px; margin-top: 4px;
+  }
+  .kpi-card.blue .kpi-val  { color: var(--blue); }
+  .kpi-card.green .kpi-val { color: var(--green); }
+  .kpi-card.yellow .kpi-val { color: var(--accent); }
+  .kpi-card.red .kpi-val   { color: var(--red); }
+  .kpi-card.purple .kpi-val { color: #bb86fc; }
+  .kpi-card.orange .kpi-val { color: #ff9800; }
 
   /* Machine summary table */
   .sum-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
@@ -402,35 +480,81 @@
 
   /* Monthly calendar strip */
   .month-days-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px;
   }
   .month-day-card {
     background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 8px 10px;
+    border-radius: 8px; padding: 8px 10px; transition: border-color .2s;
   }
-  .month-day-card .day-label { font-size: 10px; color: var(--text-dim); margin-bottom: 4px; }
-  .month-day-card .day-pcs { font-family: 'Rajdhani', sans-serif; font-size: 17px; font-weight: 700; color: var(--accent); }
-  .month-day-card .day-runs { font-size: 10px; color: var(--text-dim); }
-  .month-day-card.today { border-color: var(--accent); }
+  .month-day-card:hover { border-color: var(--muted); }
+  .month-day-card .day-label { font-size: 9px; color: var(--text-dim); margin-bottom: 4px; letter-spacing: .5px; }
+  .month-day-card .day-pcs { font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .month-day-card .day-runs { font-size: 9px; color: var(--text-dim); margin-top: 2px; }
+  .month-day-card.today { border-color: var(--accent); background: rgba(245,197,24,.05); }
+  .month-day-card.today .day-label { color: var(--accent); }
 
-  /* Shift breakdown pie-like bars */
+  /* Shift breakdown */
   .shift-bars { display: flex; gap: 8px; flex-wrap: wrap; }
-  .shift-bar-item { flex: 1; min-width: 100px; background: var(--surface2); border-radius: 8px; padding: 10px 12px; border: 1px solid var(--border); }
-  .shift-bar-item .sb-name { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
-  .shift-bar-item .sb-val { font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); margin: 2px 0; }
-  .shift-bar-item .sb-sub { font-size: 10px; color: var(--text-dim); }
+  .shift-bar-item {
+    flex: 1; min-width: 100px; background: var(--surface2);
+    border-radius: 10px; padding: 12px 14px; border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .shift-bar-item::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+    background: var(--blue); border-radius: 0 3px 3px 0;
+  }
+  .shift-bar-item .sb-name { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; }
+  .shift-bar-item .sb-val { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); margin: 2px 0; }
+  .shift-bar-item .sb-sub { font-size: 9px; color: var(--text-dim); }
+
+  /* ── Yearly Summary ── */
+  .year-months-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px;
+  }
+  .year-month-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; position: relative; overflow: hidden;
+    transition: border-color .2s, transform .15s;
+  }
+  .year-month-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .year-month-card.current-month { border-color: rgba(245,197,24,.4); background: rgba(245,197,24,.04); }
+  .year-month-card.has-data::after {
+    content: ''; position: absolute; top: 10px; right: 10px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  }
+  .year-month-card .ym-name { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  .year-month-card .ym-pcs { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1.1; margin: 4px 0; }
+  .year-month-card .ym-sub { font-size: 10px; color: var(--text-dim); }
+  .year-month-card .ym-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .year-month-card .ym-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width .6s ease; }
+
+  /* Top machine of year */
+  .top-machine-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--surface2); border-radius: 8px;
+    border: 1px solid var(--border); margin-bottom: 6px;
+  }
+  .top-machine-row .tm-rank { font-size: 11px; color: var(--text-dim); width: 20px; }
+  .top-machine-row .tm-id  { font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700; color: var(--accent); flex: 1; margin: 0 10px; }
+  .top-machine-row .tm-bar-wrap { flex: 2; margin: 0 10px; }
+  .top-machine-row .tm-bar-bg { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .top-machine-row .tm-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--green)); }
+  .top-machine-row .tm-val { font-family: 'Rajdhani', sans-serif; font-size: 13px; color: var(--text); white-space: nowrap; }
 
   /* no data */
-  .no-data { text-align: center; padding: 40px; color: var(--text-dim); font-size: 14px; }
+  .no-data { text-align: center; padding: 50px; color: var(--text-dim); font-size: 14px; }
 
   @media (max-width: 600px) {
     header { padding: 12px 16px; }
     .summary-bar, .machine-grid, .download-bar, .section-title { padding-left: 16px; padding-right: 16px; }
     .summary-btn-bar { padding-left: 16px; padding-right: 16px; }
     .machine-grid { grid-template-columns: 1fr; }
+    .sum-tabs { padding: 10px 14px 0; }
+    .sum-tab { padding: 8px 12px; font-size: 11px; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
-</head>
 <body>
 
 <header>
@@ -453,15 +577,11 @@
   <div class="summary-card"><div class="s-label">Offline</div><div class="s-value" id="s-offline">–</div></div>
 </div>
 
-<!-- ── Summary Buttons ── -->
+<!-- ── Analytics Hub Button ── -->
 <div class="summary-btn-bar">
-  <button class="sum-btn day" onclick="openDaySummary()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="2"/></svg>
-    Day Summary
-  </button>
-  <button class="sum-btn month" onclick="openMonthlySummary()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
-    Monthly Summary
+  <button class="sum-btn analytics-hub" onclick="openAnalyticsHub('day')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Analytics Hub
   </button>
 </div>
 
@@ -482,34 +602,43 @@
   </a>
 </div>
 
-<!-- ── Day Summary Modal ── -->
-<div class="sum-overlay" id="day-sum-overlay" onclick="if(event.target===this)closeDaySummary()">
+<!-- ── Analytics Hub Modal ── -->
+<div class="sum-overlay" id="analytics-hub-overlay" onclick="if(event.target===this)closeAnalyticsHub()">
   <div class="sum-modal">
     <div class="sum-modal-header">
-      <div class="sum-modal-title">
-        <svg class="icon-day" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="2"/></svg>
-        <span id="day-sum-title">Today's Summary</span>
+      <div class="sum-modal-brand">
+        <div class="brand-icon">📊</div>
+        <div>
+          <div class="brand-label">ANALYTICS HUB</div>
+          <div class="brand-sub">Factory Performance Overview</div>
+        </div>
       </div>
-      <button class="sum-close" onclick="closeDaySummary()">✕</button>
+      <button class="sum-close" onclick="closeAnalyticsHub()">✕</button>
     </div>
-    <div class="sum-body" id="day-sum-body">
-      <div class="no-data">Loading…</div>
-    </div>
-  </div>
-</div>
 
-<!-- ── Monthly Summary Modal ── -->
-<div class="sum-overlay" id="month-sum-overlay" onclick="if(event.target===this)closeMonthSummary()">
-  <div class="sum-modal">
-    <div class="sum-modal-header">
-      <div class="sum-modal-title">
-        <svg class="icon-month" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
-        <span id="month-sum-title">Monthly Summary</span>
-      </div>
-      <button class="sum-close" onclick="closeMonthSummary()">✕</button>
+    <div class="sum-tabs">
+      <button class="sum-tab tab-day active" id="tab-day" onclick="switchTab('day')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="2"/></svg>
+        Today
+      </button>
+      <button class="sum-tab tab-month" id="tab-month" onclick="switchTab('month')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+        This Month
+      </button>
+      <button class="sum-tab tab-year" id="tab-year" onclick="switchTab('year')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        This Year
+      </button>
     </div>
-    <div class="sum-body" id="month-sum-body">
-      <div class="no-data">Loading…</div>
+
+    <div class="sum-panel active" id="panel-day">
+      <div class="sum-body" id="day-sum-body"><div class="no-data">Loading…</div></div>
+    </div>
+    <div class="sum-panel" id="panel-month">
+      <div class="sum-body" id="month-sum-body"><div class="no-data">Loading…</div></div>
+    </div>
+    <div class="sum-panel" id="panel-year">
+      <div class="sum-body" id="year-sum-body"><div class="no-data">Loading…</div></div>
     </div>
   </div>
 </div>
@@ -600,6 +729,7 @@ async function fetchAll() {
   }
 
   renderDashboard();
+  _builtDay = false; _builtMonth = false; _builtYear = false;
   const t = new Date().toLocaleTimeString('en-GB');
   document.getElementById('sync-text').textContent =
     errors.length ? `Errors (${t})` : `Updated ${t}`;
@@ -1014,22 +1144,40 @@ fetchAll();
 setInterval(fetchAll, 30000);
 
 // ══════════════════════════════════════════════
-//  DAY SUMMARY
+//  ANALYTICS HUB — Open / Close / Switch
 // ══════════════════════════════════════════════
-function openDaySummary() {
-  document.getElementById('day-sum-overlay').classList.add('open');
+let _builtDay = false, _builtMonth = false, _builtYear = false;
+
+function openAnalyticsHub(tab) {
+  document.getElementById('analytics-hub-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
-  buildDaySummary();
+  switchTab(tab || 'day');
 }
-function closeDaySummary() {
-  document.getElementById('day-sum-overlay').classList.remove('open');
+function closeAnalyticsHub() {
+  document.getElementById('analytics-hub-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
+function switchTab(tab) {
+  ['day','month','year'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t===tab);
+    document.getElementById(`panel-${t}`).classList.toggle('active', t===tab);
+  });
+  if (tab==='day'   && !_builtDay)   { buildDaySummary();     _builtDay=true; }
+  if (tab==='month' && !_builtMonth) { buildMonthlySummary(); _builtMonth=true; }
+  if (tab==='year'  && !_builtYear)  { buildYearlySummary();  _builtYear=true; }
+}
+// Legacy shims (keep in case anything calls old function names)
+function openDaySummary()    { openAnalyticsHub('day'); }
+function closeDaySummary()   { closeAnalyticsHub(); }
+function openMonthlySummary(){ openAnalyticsHub('month'); }
+function closeMonthSummary() { closeAnalyticsHub(); }
+
+// ══════════════════════════════════════════════
+//  DAY SUMMARY
 
 function buildDaySummary() {
   const today = new Date();
   const todayStr = today.toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
-  document.getElementById('day-sum-title').textContent = `Day Summary — ${todayStr}`;
 
   // Aggregate today's rows across all machines
   const todayDateKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
@@ -1048,36 +1196,35 @@ function buildDaySummary() {
 
     totalRows += rows.length;
 
-    // counterPcs & counterM are cumulative machine counters (never reset).
-    // Each logged row is a snapshot. To get production for a job segment:
-    // sort by timestamp, then for each consecutive pair diff the counters.
-    // Sum of all diffs = total production this day for this machine.
+    // counterPcs & counterM are cumulative counters (never reset between sessions).
+    // Diff consecutive rows = production in that interval.
+    // ✅ If the counter resets mid-day (new job), Math.max(0,...) prevents negative values.
     rows.sort((a,b) => new Date(a[C.timestamp]) - new Date(b[C.timestamp]));
 
     let mPcs = 0, mM = 0, mTarget = 0;
     const shiftJobMap = {};
 
-    // Diff consecutive rows for PCS and M produced
-    for (let i = 1; i < rows.length; i++) {
-      const prev = rows[i - 1];
-      const cur  = rows[i];
-      const diffPcs = Math.max(0, (parseInt(cur[C.counterPcs])||0) - (parseInt(prev[C.counterPcs])||0));
-      const diffM   = Math.max(0, (parseFloat(cur[C.counterM])||0) - (parseFloat(prev[C.counterM])||0));
-      mPcs += diffPcs;
-      mM   += diffM;
-
-      // Shift attribution: use the current row's shift
-      const sh = cur[C.shift] || 'Unknown';
-      if (!shiftJobMap[sh]) shiftJobMap[sh] = {pcs:0, rows:0};
-      shiftJobMap[sh].pcs  += diffPcs;
-      shiftJobMap[sh].rows += 1;
-    }
-    // Add the very first row's counter as the starting production of the day
-    // (production from midnight/start-of-day to first log)
-    // Only add first row if there's just 1 row (no diff possible)
     if (rows.length === 1) {
+      // Only one snapshot today — use it as-is (can't diff)
       mPcs = parseInt(rows[0][C.counterPcs])||0;
       mM   = parseFloat(rows[0][C.counterM])||0;
+      const sh = rows[0][C.shift] || 'Unknown';
+      if (!shiftJobMap[sh]) shiftJobMap[sh] = {pcs:0, rows:0};
+      shiftJobMap[sh].pcs  += mPcs;
+      shiftJobMap[sh].rows += 1;
+    } else {
+      for (let i = 1; i < rows.length; i++) {
+        const prev = rows[i - 1];
+        const cur  = rows[i];
+        const diffPcs = Math.max(0, (parseInt(cur[C.counterPcs])||0) - (parseInt(prev[C.counterPcs])||0));
+        const diffM   = Math.max(0, (parseFloat(cur[C.counterM])||0) - (parseFloat(prev[C.counterM])||0));
+        mPcs += diffPcs;
+        mM   += diffM;
+        const sh = cur[C.shift] || 'Unknown';
+        if (!shiftJobMap[sh]) shiftJobMap[sh] = {pcs:0, rows:0};
+        shiftJobMap[sh].pcs  += diffPcs;
+        shiftJobMap[sh].rows += 1;
+      }
     }
 
     // Target: use last row's totalTargetQty (most recent target for this machine today)
@@ -1114,6 +1261,11 @@ function buildDaySummary() {
   const maxLoss = topLosses.length ? topLosses[0][1] : 1;
 
   let html = '';
+
+  // Date header
+  html += `<div style="text-align:center;padding:4px 0 8px">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase">${todayStr}</div>
+  </div>`;
 
   // KPI row
   html += `<div>
@@ -1186,7 +1338,7 @@ function buildDaySummary() {
   }
 
   if (totalRows === 0) {
-    html = '<div class="no-data">📭 No data recorded today yet.</div>';
+    html = '<div class="no-data"><div class="no-data-icon">📭</div>No data recorded today yet.</div>';
   }
 
   document.getElementById('day-sum-body').innerHTML = html;
@@ -1195,27 +1347,15 @@ function buildDaySummary() {
 // ══════════════════════════════════════════════
 //  MONTHLY SUMMARY
 // ══════════════════════════════════════════════
-function openMonthlySummary() {
-  document.getElementById('month-sum-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  buildMonthlySummary();
-}
-function closeMonthSummary() {
-  document.getElementById('month-sum-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
 function buildMonthlySummary() {
   const now = new Date();
   const monthName = now.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
-  document.getElementById('month-sum-title').textContent = `Monthly Summary — ${monthName}`;
 
   const curYear = now.getFullYear();
   const curMonth = now.getMonth();
   const today = now.getDate();
 
-  // day-keyed data: dayNum → {pcs, m, rows, machines: Set}
-  let dayMap = {};
+  let dayMap = {}; // dayNum → {pcs, m, rows}
   let totalPcs = 0, totalM = 0, totalTarget = 0;
   let machineMonthStats = [];
   let lossMap = {};
@@ -1230,22 +1370,38 @@ function buildMonthlySummary() {
     let mPcs=0, mM=0, mTarget=0, mRows=rows.length;
 
     if (rows.length > 0) {
-      // counterPcs & counterM are cumulative — diff consecutive rows to get actual production.
       rows.sort((a,b) => new Date(a[C.timestamp]) - new Date(b[C.timestamp]));
 
       if (rows.length === 1) {
         mPcs = parseInt(rows[0][C.counterPcs])||0;
         mM   = parseFloat(rows[0][C.counterM])||0;
+        // Single-row: attribute to its own day
+        const dk = new Date(rows[0][C.timestamp]).getDate();
+        if (!dayMap[dk]) dayMap[dk] = {pcs:0, m:0, rows:0};
+        dayMap[dk].pcs += mPcs;
+        dayMap[dk].m   += mM;
+        dayMap[dk].rows += 1;
       } else {
         for (let i = 1; i < rows.length; i++) {
-          mPcs += Math.max(0, (parseInt(rows[i][C.counterPcs])||0) - (parseInt(rows[i-1][C.counterPcs])||0));
-          mM   += Math.max(0, (parseFloat(rows[i][C.counterM])||0)  - (parseFloat(rows[i-1][C.counterM])||0));
+          const diffPcs = Math.max(0, (parseInt(rows[i][C.counterPcs])||0) - (parseInt(rows[i-1][C.counterPcs])||0));
+          const diffM   = Math.max(0, (parseFloat(rows[i][C.counterM])||0)  - (parseFloat(rows[i-1][C.counterM])||0));
+          mPcs += diffPcs;
+          mM   += diffM;
+
+          // ✅ FIXED: attribute each diff to the CURRENT row's day (not previous)
+          const dk = new Date(rows[i][C.timestamp]).getDate();
+          if (!dayMap[dk]) dayMap[dk] = {pcs:0, m:0, rows:0};
+          dayMap[dk].pcs  += diffPcs;
+          dayMap[dk].m    += diffM;
+          dayMap[dk].rows += 1;
         }
       }
 
+      // ✅ FIXED: target = last row's total target for this machine this month
       const lastRow = rows[rows.length - 1];
       mTarget = parseInt(lastRow[C.totalTargetQty])||0;
 
+      // ✅ FIXED: Loss codes from last row (they are cumulative per job session)
       LOSS_CODES.forEach(code => {
         const val = formatDuration(lastRow[C[code]]);
         if (val && val !== '–' && val !== '00:00:00') {
@@ -1253,28 +1409,6 @@ function buildMonthlySummary() {
           if (secs > 0) lossMap[code] = (lossMap[code]||0) + secs;
         }
       });
-    }
-
-    // Daily calendar: diff consecutive rows within each day to get production per day
-    for (let i = 1; i < rows.length; i++) {
-      const cur  = rows[i];
-      const prev = rows[i - 1];
-      const d = new Date(cur[C.timestamp]);
-      const dayKey = d.getDate();
-      const diffPcs = Math.max(0, (parseInt(cur[C.counterPcs])||0) - (parseInt(prev[C.counterPcs])||0));
-      const diffM   = Math.max(0, (parseFloat(cur[C.counterM])||0)  - (parseFloat(prev[C.counterM])||0));
-      if (!dayMap[dayKey]) dayMap[dayKey] = {pcs:0, m:0, rows:0};
-      dayMap[dayKey].pcs  += diffPcs;
-      dayMap[dayKey].m    += diffM;
-      dayMap[dayKey].rows += 1;
-    }
-    if (rows.length === 1) {
-      const d = new Date(rows[0][C.timestamp]);
-      const dayKey = d.getDate();
-      if (!dayMap[dayKey]) dayMap[dayKey] = {pcs:0, m:0, rows:0};
-      dayMap[dayKey].pcs  = parseInt(rows[0][C.counterPcs])||0;
-      dayMap[dayKey].m    = parseFloat(rows[0][C.counterM])||0;
-      dayMap[dayKey].rows = 1;
     }
 
     totalPcs    += mPcs;
@@ -1290,6 +1424,11 @@ function buildMonthlySummary() {
   const maxLoss = topLosses.length ? topLosses[0][1] : 1;
 
   let html = '';
+
+  // Month header
+  html += `<div style="text-align:center;padding:4px 0 8px">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase">${monthName}</div>
+  </div>`;
 
   // KPIs
   html += `<div>
@@ -1363,10 +1502,188 @@ function buildMonthlySummary() {
   }
 
   if (totalPcs === 0 && totalDaysActive === 0) {
-    html = '<div class="no-data">📭 No data recorded this month yet.</div>';
+    html = '<div class="no-data"><div class="no-data-icon">📭</div>No data recorded this month yet.</div>';
   }
 
   document.getElementById('month-sum-body').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+//  YEARLY SUMMARY
+// ══════════════════════════════════════════════
+function buildYearlySummary() {
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth();
+
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+
+  let yearTotalPcs = 0, yearTotalM = 0, yearTotalTarget = 0;
+  let monthMap = {}; // 0-11 → {pcs, m, target, activeDays: Set}
+  let machineYearStats = {}; // mid → {pcs, m}
+  let lossMap = {};
+  let totalActiveDays = new Set();
+
+  for (let mo = 0; mo <= curMonth; mo++) {
+    monthMap[mo] = { pcs: 0, m: 0, target: 0, activeDays: new Set() };
+  }
+
+  for (const mid of MACHINES) {
+    machineYearStats[mid] = { pcs: 0, m: 0 };
+    const rows = (allRows[mid] || []).filter(r => {
+      if (!r[C.timestamp]) return false;
+      return new Date(r[C.timestamp]).getFullYear() === curYear;
+    });
+    if (!rows.length) continue;
+    rows.sort((a,b) => new Date(a[C.timestamp]) - new Date(b[C.timestamp]));
+
+    if (rows.length === 1) {
+      const d = new Date(rows[0][C.timestamp]);
+      const mo = d.getMonth();
+      if (mo <= curMonth) {
+        const pcs = parseInt(rows[0][C.counterPcs])||0;
+        const m   = parseFloat(rows[0][C.counterM])||0;
+        monthMap[mo].pcs += pcs;
+        monthMap[mo].m   += m;
+        monthMap[mo].activeDays.add(`${mo}-${d.getDate()}`);
+        totalActiveDays.add(`${mo}-${d.getDate()}`);
+        machineYearStats[mid].pcs += pcs;
+        machineYearStats[mid].m   += m;
+      }
+    } else {
+      for (let i = 1; i < rows.length; i++) {
+        const d = new Date(rows[i][C.timestamp]);
+        const mo = d.getMonth();
+        if (mo > curMonth) continue;
+
+        const diffPcs = Math.max(0, (parseInt(rows[i][C.counterPcs])||0) - (parseInt(rows[i-1][C.counterPcs])||0));
+        const diffM   = Math.max(0, (parseFloat(rows[i][C.counterM])||0)  - (parseFloat(rows[i-1][C.counterM])||0));
+
+        monthMap[mo].pcs += diffPcs;
+        monthMap[mo].m   += diffM;
+        const dayKey = `${mo}-${d.getDate()}`;
+        monthMap[mo].activeDays.add(dayKey);
+        totalActiveDays.add(dayKey);
+        machineYearStats[mid].pcs += diffPcs;
+        machineYearStats[mid].m   += diffM;
+      }
+    }
+
+    // ✅ FIXED: Collect target PER MONTH by scanning rows grouped by month
+    // Use the last row of each month as the authoritative target for that month
+    const rowsByMonth = {};
+    for (const r of rows) {
+      const mo = new Date(r[C.timestamp]).getMonth();
+      if (mo > curMonth) continue;
+      if (!rowsByMonth[mo]) rowsByMonth[mo] = [];
+      rowsByMonth[mo].push(r);
+    }
+    for (const [mo, mRows] of Object.entries(rowsByMonth)) {
+      const lastR = mRows[mRows.length - 1];
+      const tgt = parseInt(lastR[C.totalTargetQty])||0;
+      monthMap[+mo].target += tgt;
+      yearTotalTarget += tgt;
+    }
+
+    // Loss codes from overall last row of the year
+    const lastRow = rows[rows.length - 1];
+    LOSS_CODES.forEach(code => {
+      const val = formatDuration(lastRow[C[code]]);
+      if (val && val !== '–' && val !== '00:00:00') {
+        const secs = hmsToSec(val);
+        if (secs > 0) lossMap[code] = (lossMap[code]||0) + secs;
+      }
+    });
+  }
+
+  for (let mo = 0; mo <= curMonth; mo++) {
+    yearTotalPcs += monthMap[mo].pcs;
+    yearTotalM   += monthMap[mo].m;
+  }
+
+  const yearEfficiency = yearTotalTarget > 0 ? Math.min(Math.round((yearTotalPcs/yearTotalTarget)*100),100) : 0;
+  const maxMonthPcs = Math.max(...Object.values(monthMap).map(m => m.pcs), 1);
+  const topLosses = Object.entries(lossMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxLoss = topLosses.length ? topLosses[0][1] : 1;
+  const bestMonth = Object.entries(monthMap).sort((a,b)=>b[1].pcs-a[1].pcs)[0];
+  const bestMonthName = bestMonth && bestMonth[1].pcs > 0 ? MONTH_NAMES[+bestMonth[0]] : '–';
+
+  let html = '';
+
+  // Year header
+  html += `<div style="text-align:center;padding:4px 0 8px">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase">Full Year ${curYear}</div>
+  </div>`;
+
+  // KPIs
+  html += `<div>
+    <div class="sum-section-title">🏆 Annual Factory KPIs</div>
+    <div class="kpi-row">
+      <div class="kpi-card yellow"><div class="kpi-val">${yearTotalPcs.toLocaleString()}</div><div class="kpi-lbl">Total PCS</div></div>
+      <div class="kpi-card blue"><div class="kpi-val">${parseFloat(yearTotalM).toFixed(1)}</div><div class="kpi-lbl">Total Meters</div></div>
+      <div class="kpi-card green"><div class="kpi-val">${yearEfficiency}%</div><div class="kpi-lbl">Avg Efficiency</div></div>
+      <div class="kpi-card purple"><div class="kpi-val">${totalActiveDays.size}</div><div class="kpi-lbl">Active Days</div></div>
+      <div class="kpi-card orange"><div class="kpi-val">${bestMonthName}</div><div class="kpi-lbl">Best Month</div></div>
+    </div>
+  </div>`;
+
+  // Machine performance
+  const machineList = MACHINES.map(mid => ({ mid, ...machineYearStats[mid] }))
+    .sort((a,b) => b.pcs - a.pcs);
+  const maxMachinePcs = Math.max(...machineList.map(m => m.pcs), 1);
+  html += `<div>
+    <div class="sum-section-title">🏭 Machine Performance — ${curYear}</div>
+    ${machineList.map((m, i) => `
+      <div class="top-machine-row">
+        <div class="tm-rank">#${i+1}</div>
+        <div class="tm-id">${m.mid}</div>
+        <div class="tm-bar-wrap">
+          <div class="tm-bar-bg"><div class="tm-bar-fill" style="width:${Math.round((m.pcs/maxMachinePcs)*100)}%"></div></div>
+        </div>
+        <div class="tm-val">${m.pcs.toLocaleString()} pcs · ${parseFloat(m.m).toFixed(1)}m</div>
+      </div>`).join('')}
+  </div>`;
+
+  // Monthly breakdown grid
+  html += `<div>
+    <div class="sum-section-title">📅 Monthly Breakdown — ${curYear}</div>
+    <div class="year-months-grid">
+      ${Object.entries(monthMap).map(([mo, info]) => {
+        const isCurrentMonth = +mo === curMonth;
+        const hasData = info.pcs > 0;
+        const barPct = Math.round((info.pcs / maxMonthPcs) * 100);
+        return `
+          <div class="year-month-card ${isCurrentMonth?'current-month':''} ${hasData?'has-data':''}">
+            <div class="ym-name">${MONTH_NAMES[+mo]}</div>
+            <div class="ym-pcs">${hasData ? info.pcs.toLocaleString() : '–'}</div>
+            <div class="ym-sub">${hasData ? parseFloat(info.m).toFixed(1)+'m · '+info.activeDays.size+' days' : 'No data'}</div>
+            <div class="ym-bar"><div class="ym-bar-fill" style="width:${barPct}%"></div></div>
+          </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  // Top loss codes
+  if (topLosses.length) {
+    html += `<div>
+      <div class="sum-section-title">⏱ Top Loss Codes — Full Year</div>
+      <div class="loss-grid">
+        ${topLosses.map(([code, secs]) => `
+          <div class="loss-row">
+            <div class="loss-code">${code}</div>
+            <div class="loss-bar-bg"><div class="loss-bar-fill" style="width:${Math.round((secs/maxLoss)*100)}%"></div></div>
+            <div class="loss-time">${secToHms(secs)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (yearTotalPcs === 0) {
+    html = '<div class="no-data"><div class="no-data-icon">📭</div>No data recorded this year yet.</div>';
+  }
+
+  document.getElementById('year-sum-body').innerHTML = html;
 }
 
 // ──────── Helpers ────────
@@ -1384,7 +1701,7 @@ function secToHms(sec) {
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { closeDaySummary(); closeMonthSummary(); }
+  if (e.key === 'Escape') { closeAnalyticsHub(); closeSheetModal(); }
 });
 </script>
 </body>
