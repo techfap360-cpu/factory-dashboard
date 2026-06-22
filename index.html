@@ -1048,41 +1048,49 @@ function buildDaySummary() {
 
     totalRows += rows.length;
 
-    // Group by Job+Size — counter resets per job, so take MAX per group
-    const jobGroups = {};
-    rows.forEach(r => {
-      const key = (r[C.job]||'?') + '|' + (r[C.size]||'?');
-      if (!jobGroups[key]) jobGroups[key] = [];
-      jobGroups[key].push(r);
-    });
+    // counterPcs & counterM are cumulative machine counters (never reset).
+    // Each logged row is a snapshot. To get production for a job segment:
+    // sort by timestamp, then for each consecutive pair diff the counters.
+    // Sum of all diffs = total production this day for this machine.
+    rows.sort((a,b) => new Date(a[C.timestamp]) - new Date(b[C.timestamp]));
 
     let mPcs = 0, mM = 0, mTarget = 0;
-    // Shift breakdown: per shift → per job → max counter
     const shiftJobMap = {};
 
-    Object.values(jobGroups).forEach(jRows => {
-      const last = jRows[jRows.length - 1];
-      const jPcs = parseInt(last[C.counterPcs])||0;
-      const jM   = parseFloat(last[C.counterM])||0;
-      const jTgt = parseInt(last[C.totalTargetQty])||0;
-      mPcs    += jPcs;
-      mM      += jM;
-      mTarget += jTgt;
+    // Diff consecutive rows for PCS and M produced
+    for (let i = 1; i < rows.length; i++) {
+      const prev = rows[i - 1];
+      const cur  = rows[i];
+      const diffPcs = Math.max(0, (parseInt(cur[C.counterPcs])||0) - (parseInt(prev[C.counterPcs])||0));
+      const diffM   = Math.max(0, (parseFloat(cur[C.counterM])||0) - (parseFloat(prev[C.counterM])||0));
+      mPcs += diffPcs;
+      mM   += diffM;
 
-      // Shift: use the shift of last row of this job
-      const sh = last[C.shift] || 'Unknown';
+      // Shift attribution: use the current row's shift
+      const sh = cur[C.shift] || 'Unknown';
       if (!shiftJobMap[sh]) shiftJobMap[sh] = {pcs:0, rows:0};
-      shiftJobMap[sh].pcs  += jPcs;
-      shiftJobMap[sh].rows += jRows.length;
+      shiftJobMap[sh].pcs  += diffPcs;
+      shiftJobMap[sh].rows += 1;
+    }
+    // Add the very first row's counter as the starting production of the day
+    // (production from midnight/start-of-day to first log)
+    // Only add first row if there's just 1 row (no diff possible)
+    if (rows.length === 1) {
+      mPcs = parseInt(rows[0][C.counterPcs])||0;
+      mM   = parseFloat(rows[0][C.counterM])||0;
+    }
 
-      // Loss codes from last row of each job
-      LOSS_CODES.forEach(code => {
-        const val = formatDuration(last[C[code]]);
-        if (val && val !== '–' && val !== '00:00:00') {
-          const secs = hmsToSec(val);
-          if (secs > 0) lossMap[code] = (lossMap[code]||0) + secs;
-        }
-      });
+    // Target: use last row's totalTargetQty (most recent target for this machine today)
+    const lastRow = rows[rows.length - 1];
+    mTarget = parseInt(lastRow[C.totalTargetQty])||0;
+
+    // Loss codes: sum last row of the day (cumulative loss for the day)
+    LOSS_CODES.forEach(code => {
+      const val = formatDuration(lastRow[C[code]]);
+      if (val && val !== '–' && val !== '00:00:00') {
+        const secs = hmsToSec(val);
+        if (secs > 0) lossMap[code] = (lossMap[code]||0) + secs;
+      }
     });
 
     // Merge shiftJobMap into global shiftMap
@@ -1092,7 +1100,6 @@ function buildDaySummary() {
       shiftMap[sh].rows += v.rows;
     });
 
-    const lastRow = rows[rows.length - 1];
     const prog = Math.min(Math.round(mTarget > 0 ? (mPcs/mTarget)*100 : 0), 100);
     totalPcs    += mPcs;
     totalM      += mM;
@@ -1223,55 +1230,52 @@ function buildMonthlySummary() {
     let mPcs=0, mM=0, mTarget=0, mRows=rows.length;
 
     if (rows.length > 0) {
-      // Group rows by job+size combo → each combo is one production run.
-      // Counter resets on each new job, so take the MAX per job = final count for that job.
-      const jobGroups = {};
-      rows.forEach(r => {
-        const key = (r[C.job]||'?') + '|' + (r[C.size]||'?');
-        if (!jobGroups[key]) jobGroups[key] = [];
-        jobGroups[key].push(r);
-      });
+      // counterPcs & counterM are cumulative — diff consecutive rows to get actual production.
+      rows.sort((a,b) => new Date(a[C.timestamp]) - new Date(b[C.timestamp]));
 
-      Object.values(jobGroups).forEach(jRows => {
-        // Last row of each job holds the final counter value
-        const last = jRows[jRows.length - 1];
-        mPcs    += parseInt(last[C.counterPcs])||0;
-        mM      += parseFloat(last[C.counterM])||0;
-        mTarget += parseInt(last[C.totalTargetQty])||0;
+      if (rows.length === 1) {
+        mPcs = parseInt(rows[0][C.counterPcs])||0;
+        mM   = parseFloat(rows[0][C.counterM])||0;
+      } else {
+        for (let i = 1; i < rows.length; i++) {
+          mPcs += Math.max(0, (parseInt(rows[i][C.counterPcs])||0) - (parseInt(rows[i-1][C.counterPcs])||0));
+          mM   += Math.max(0, (parseFloat(rows[i][C.counterM])||0)  - (parseFloat(rows[i-1][C.counterM])||0));
+        }
+      }
 
-        // Loss codes: sum last row of each job
-        LOSS_CODES.forEach(code => {
-          const val = formatDuration(last[C[code]]);
-          if (val && val !== '–' && val !== '00:00:00') {
-            const secs = hmsToSec(val);
-            if (secs > 0) lossMap[code] = (lossMap[code]||0) + secs;
-          }
-        });
+      const lastRow = rows[rows.length - 1];
+      mTarget = parseInt(lastRow[C.totalTargetQty])||0;
+
+      LOSS_CODES.forEach(code => {
+        const val = formatDuration(lastRow[C[code]]);
+        if (val && val !== '–' && val !== '00:00:00') {
+          const secs = hmsToSec(val);
+          if (secs > 0) lossMap[code] = (lossMap[code]||0) + secs;
+        }
       });
     }
 
-    // Daily calendar: per day, sum across all jobs that ran on that day
-    // Group by day → job → take max counter for that job on that day
-    const dayJobMap = {}; // dayKey → jobKey → maxPcs, maxM
-    rows.forEach(r => {
-      const d = new Date(r[C.timestamp]);
+    // Daily calendar: diff consecutive rows within each day to get production per day
+    for (let i = 1; i < rows.length; i++) {
+      const cur  = rows[i];
+      const prev = rows[i - 1];
+      const d = new Date(cur[C.timestamp]);
       const dayKey = d.getDate();
-      const jobKey = (r[C.job]||'?') + '|' + (r[C.size]||'?');
-      if (!dayJobMap[dayKey]) dayJobMap[dayKey] = {};
-      if (!dayJobMap[dayKey][jobKey]) dayJobMap[dayKey][jobKey] = {pcs:0, m:0};
-      dayJobMap[dayKey][jobKey].pcs = Math.max(dayJobMap[dayKey][jobKey].pcs, parseInt(r[C.counterPcs])||0);
-      dayJobMap[dayKey][jobKey].m   = Math.max(dayJobMap[dayKey][jobKey].m,   parseFloat(r[C.counterM])||0);
+      const diffPcs = Math.max(0, (parseInt(cur[C.counterPcs])||0) - (parseInt(prev[C.counterPcs])||0));
+      const diffM   = Math.max(0, (parseFloat(cur[C.counterM])||0)  - (parseFloat(prev[C.counterM])||0));
       if (!dayMap[dayKey]) dayMap[dayKey] = {pcs:0, m:0, rows:0};
-      dayMap[dayKey].rows++;
-    });
-    // Collapse dayJobMap → dayMap totals
-    Object.entries(dayJobMap).forEach(([day, jobs]) => {
-      let dPcs=0, dM=0;
-      Object.values(jobs).forEach(j => { dPcs+=j.pcs; dM+=j.m; });
-      if (!dayMap[day]) dayMap[day] = {pcs:0, m:0, rows:0};
-      dayMap[day].pcs = (dayMap[day].pcs||0) + dPcs;
-      dayMap[day].m   = (dayMap[day].m||0)   + dM;
-    });
+      dayMap[dayKey].pcs  += diffPcs;
+      dayMap[dayKey].m    += diffM;
+      dayMap[dayKey].rows += 1;
+    }
+    if (rows.length === 1) {
+      const d = new Date(rows[0][C.timestamp]);
+      const dayKey = d.getDate();
+      if (!dayMap[dayKey]) dayMap[dayKey] = {pcs:0, m:0, rows:0};
+      dayMap[dayKey].pcs  = parseInt(rows[0][C.counterPcs])||0;
+      dayMap[dayKey].m    = parseFloat(rows[0][C.counterM])||0;
+      dayMap[dayKey].rows = 1;
+    }
 
     totalPcs    += mPcs;
     totalM      += mM;
