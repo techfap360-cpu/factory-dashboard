@@ -540,7 +540,7 @@
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbylgoFl7zHxpGiASfU6HaPkGZPClDSPQFuwjk7p1034Gss3aRfIgAOZeOzN_CkVCWSIBQ/exec';
 
 // Machine IDs to poll (add more as they come online)
-const MACHINES = ['PM00201'];
+const MACHINES = ['PM00201', 'PM00202'];
 
 // Column index map (0-based, matching your 38-col sheet)
 const C = {
@@ -1046,35 +1046,59 @@ function buildDaySummary() {
     });
     if (rows.length === 0) { machineStats.push({mid, rows:0, pcs:0, m:0, target:0, progress:0, status:'No Data', job:'–', shift:'–'}); continue; }
 
-    const lastRow = rows[rows.length - 1];
-    const pcs = parseInt(lastRow[C.counterPcs]) || 0;
-    const m   = parseFloat(lastRow[C.counterM]) || 0;
-    const tgt = parseInt(lastRow[C.totalTargetQty]) || 0;
-    const prog = Math.min(Math.round((parseFloat(lastRow[C.progress])||0)*100), 100);
+    totalRows += rows.length;
 
-    totalPcs    += pcs;
-    totalM      += m;
-    totalTarget += tgt;
-    totalRows   += rows.length;
-
-    // Shift breakdown
+    // Group by Job+Size — counter resets per job, so take MAX per group
+    const jobGroups = {};
     rows.forEach(r => {
-      const sh = (r[C.shift] || 'Unknown');
+      const key = (r[C.job]||'?') + '|' + (r[C.size]||'?');
+      if (!jobGroups[key]) jobGroups[key] = [];
+      jobGroups[key].push(r);
+    });
+
+    let mPcs = 0, mM = 0, mTarget = 0;
+    // Shift breakdown: per shift → per job → max counter
+    const shiftJobMap = {};
+
+    Object.values(jobGroups).forEach(jRows => {
+      const last = jRows[jRows.length - 1];
+      const jPcs = parseInt(last[C.counterPcs])||0;
+      const jM   = parseFloat(last[C.counterM])||0;
+      const jTgt = parseInt(last[C.totalTargetQty])||0;
+      mPcs    += jPcs;
+      mM      += jM;
+      mTarget += jTgt;
+
+      // Shift: use the shift of last row of this job
+      const sh = last[C.shift] || 'Unknown';
+      if (!shiftJobMap[sh]) shiftJobMap[sh] = {pcs:0, rows:0};
+      shiftJobMap[sh].pcs  += jPcs;
+      shiftJobMap[sh].rows += jRows.length;
+
+      // Loss codes from last row of each job
+      LOSS_CODES.forEach(code => {
+        const val = formatDuration(last[C[code]]);
+        if (val && val !== '–' && val !== '00:00:00') {
+          const secs = hmsToSec(val);
+          if (secs > 0) lossMap[code] = (lossMap[code]||0) + secs;
+        }
+      });
+    });
+
+    // Merge shiftJobMap into global shiftMap
+    Object.entries(shiftJobMap).forEach(([sh, v]) => {
       if (!shiftMap[sh]) shiftMap[sh] = {pcs:0, rows:0};
-      shiftMap[sh].pcs += parseInt(r[C.counterPcs])||0;
-      shiftMap[sh].rows++;
+      shiftMap[sh].pcs  += v.pcs;
+      shiftMap[sh].rows += v.rows;
     });
 
-    // Loss aggregation (sum seconds per code)
-    LOSS_CODES.forEach(code => {
-      const val = formatDuration(lastRow[C[code]]);
-      if (val && val !== '–' && val !== '00:00:00') {
-        const secs = hmsToSec(val);
-        if (secs > 0) { lossMap[code] = (lossMap[code]||0) + secs; }
-      }
-    });
+    const lastRow = rows[rows.length - 1];
+    const prog = Math.min(Math.round(mTarget > 0 ? (mPcs/mTarget)*100 : 0), 100);
+    totalPcs    += mPcs;
+    totalM      += mM;
+    totalTarget += mTarget;
 
-    machineStats.push({ mid, rows: rows.length, pcs, m: m.toFixed(1), target: tgt, progress: prog,
+    machineStats.push({ mid, rows: rows.length, pcs: mPcs, m: mM.toFixed(1), target: mTarget, progress: prog,
       status: getStatus(lastRow), job: lastRow[C.job]||'–', shift: lastRow[C.shift]||'–' });
   }
 
@@ -1096,31 +1120,42 @@ function buildDaySummary() {
     </div>
   </div>`;
 
-  // Machine table
+  // Machine cards (mobile-friendly)
   html += `<div>
     <div class="sum-section-title">🏭 Per Machine Breakdown</div>
-    <div class="sum-table-wrap"><table class="sum-table">
-      <thead><tr>
-        <th>Machine</th><th>Status</th><th>Job</th><th>Shift</th>
-        <th>PCS</th><th>Meters</th><th>Target</th><th>Progress</th><th>Entries</th>
-      </tr></thead><tbody>
+    <div style="display:flex;flex-direction:column;gap:10px;">
       ${machineStats.map(s => {
         const sc = {running:'badge-running',idle:'badge-idle',done:'badge-done',offline:'badge-offline','No Data':'badge-offline'}[s.status]||'badge-offline';
-        const pBar = `<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${s.progress}%"></div></div>`;
-        return `<tr>
-          <td class="mid-cell">${s.mid}</td>
-          <td><span class="status-pill ${sc}">${s.status}</span></td>
-          <td style="color:var(--text)">${s.job}</td>
-          <td style="color:var(--text-dim)">${s.shift}</td>
-          <td style="color:var(--accent);font-weight:700">${s.pcs.toLocaleString()}</td>
-          <td style="color:var(--blue)">${s.m}</td>
-          <td style="color:var(--text-dim)">${s.target.toLocaleString()}</td>
-          <td style="color:var(--green)">${s.progress}% ${pBar}</td>
-          <td style="color:var(--text-dim)">${s.rows}</td>
-        </tr>`;
+        const progColor = s.progress>=100?'var(--green)':s.progress>=60?'var(--blue)':'var(--red)';
+        return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;color:var(--accent)">${s.mid}</span>
+            <span class="status-pill ${sc}">${s.status}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
+              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--accent)">${s.pcs.toLocaleString()}</div>
+              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">TOTAL PCS</div>
+            </div>
+            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
+              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--blue)">${s.m}</div>
+              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">METERS</div>
+            </div>
+            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
+              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--text-dim)">${s.target.toLocaleString()}</div>
+              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">TARGET</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:5px;">
+            <span>Job: <b style="color:var(--text)">${s.job}</b> &nbsp;|&nbsp; Shift: <b style="color:var(--text)">${s.shift}</b> &nbsp;|&nbsp; Entries: <b style="color:var(--text)">${s.rows}</b></span>
+            <span style="color:${progColor};font-weight:700">${s.progress}%</span>
+          </div>
+          <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
+            <div style="height:100%;border-radius:4px;width:${s.progress}%;background:linear-gradient(90deg,var(--blue),${progColor});transition:width .4s"></div>
+          </div>
+        </div>`;
       }).join('')}
-      </tbody>
-    </table></div>
+    </div>
   </div>`;
 
   // Shift summary
@@ -1275,26 +1310,41 @@ function buildMonthlySummary() {
     </div>
   </div>`;
 
-  // Machine breakdown
+  // Machine breakdown — cards
   html += `<div>
     <div class="sum-section-title">🏭 Per Machine — This Month</div>
-    <div class="sum-table-wrap"><table class="sum-table">
-      <thead><tr>
-        <th>Machine</th><th>PCS</th><th>Meters</th><th>Target</th><th>Progress</th><th>Entries</th>
-      </tr></thead><tbody>
+    <div style="display:flex;flex-direction:column;gap:10px;">
       ${machineMonthStats.map(s => {
-        const pBar = `<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${s.progress}%"></div></div>`;
-        return `<tr>
-          <td class="mid-cell">${s.mid}</td>
-          <td style="color:var(--accent);font-weight:700">${s.pcs.toLocaleString()}</td>
-          <td style="color:var(--blue)">${s.m}</td>
-          <td style="color:var(--text-dim)">${s.target.toLocaleString()}</td>
-          <td style="color:var(--green)">${s.progress}% ${pBar}</td>
-          <td style="color:var(--text-dim)">${s.rows}</td>
-        </tr>`;
+        const progColor = s.progress>=100?'var(--green)':s.progress>=60?'var(--blue)':'var(--red)';
+        return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;color:var(--accent)">${s.mid}</span>
+            <span style="font-size:11px;color:var(--text-dim)">${s.rows} entries</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
+              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--accent)">${s.pcs.toLocaleString()}</div>
+              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">TOTAL PCS</div>
+            </div>
+            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
+              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--blue)">${s.m}</div>
+              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">METERS</div>
+            </div>
+            <div style="text-align:center;background:var(--surface);border-radius:7px;padding:8px 4px;">
+              <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--text-dim)">${s.target.toLocaleString()}</div>
+              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">TARGET</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-bottom:5px;">
+            <span style="color:var(--text-dim)">Monthly Progress</span>
+            <span style="color:${progColor};font-weight:700">${s.progress}%</span>
+          </div>
+          <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
+            <div style="height:100%;border-radius:4px;width:${s.progress}%;background:linear-gradient(90deg,var(--blue),${progColor});transition:width .4s"></div>
+          </div>
+        </div>`;
       }).join('')}
-      </tbody>
-    </table></div>
+    </div>
   </div>`;
 
   // Daily calendar strip
