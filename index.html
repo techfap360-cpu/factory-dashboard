@@ -1196,42 +1196,29 @@ function buildDaySummary() {
 
     totalRows += rows.length;
 
-    // counterPcs & counterM are cumulative counters (never reset between sessions).
-    // Diff consecutive rows = production in that interval.
-    // ✅ If the counter resets mid-day (new job), Math.max(0,...) prevents negative values.
+    // ✅ CORRECT: Each row = one completed job snapshot.
+    // Counter (pcs) and Counter (m) are PER-JOB values, NOT cumulative.
+    // So we SUM all rows directly — no diff needed!
     rows.sort((a,b) => new Date(a[C.timestamp]) - new Date(b[C.timestamp]));
 
     let mPcs = 0, mM = 0, mTarget = 0;
     const shiftJobMap = {};
 
-    if (rows.length === 1) {
-      // Only one snapshot today — use it as-is (can't diff)
-      mPcs = parseInt(rows[0][C.counterPcs])||0;
-      mM   = parseFloat(rows[0][C.counterM])||0;
-      const sh = rows[0][C.shift] || 'Unknown';
+    for (const row of rows) {
+      const rowPcs = parseInt(row[C.counterPcs])||0;
+      const rowM   = parseFloat(row[C.counterM])||0;
+      const rowTgt = parseInt(row[C.totalTargetQty])||0;
+      mPcs += rowPcs;
+      mM   += rowM;
+      mTarget += rowTgt;
+      const sh = row[C.shift] || 'Unknown';
       if (!shiftJobMap[sh]) shiftJobMap[sh] = {pcs:0, rows:0};
-      shiftJobMap[sh].pcs  += mPcs;
+      shiftJobMap[sh].pcs  += rowPcs;
       shiftJobMap[sh].rows += 1;
-    } else {
-      for (let i = 1; i < rows.length; i++) {
-        const prev = rows[i - 1];
-        const cur  = rows[i];
-        const diffPcs = Math.max(0, (parseInt(cur[C.counterPcs])||0) - (parseInt(prev[C.counterPcs])||0));
-        const diffM   = Math.max(0, (parseFloat(cur[C.counterM])||0) - (parseFloat(prev[C.counterM])||0));
-        mPcs += diffPcs;
-        mM   += diffM;
-        const sh = cur[C.shift] || 'Unknown';
-        if (!shiftJobMap[sh]) shiftJobMap[sh] = {pcs:0, rows:0};
-        shiftJobMap[sh].pcs  += diffPcs;
-        shiftJobMap[sh].rows += 1;
-      }
     }
 
-    // Target: use last row's totalTargetQty (most recent target for this machine today)
+    // Loss codes: from last row (loss times are session-cumulative per job)
     const lastRow = rows[rows.length - 1];
-    mTarget = parseInt(lastRow[C.totalTargetQty])||0;
-
-    // Loss codes: sum last row of the day (cumulative loss for the day)
     LOSS_CODES.forEach(code => {
       const val = formatDuration(lastRow[C[code]]);
       if (val && val !== '–' && val !== '00:00:00') {
@@ -1370,38 +1357,26 @@ function buildMonthlySummary() {
     let mPcs=0, mM=0, mTarget=0, mRows=rows.length;
 
     if (rows.length > 0) {
+      // ✅ CORRECT: Each row = one completed job. SUM directly.
       rows.sort((a,b) => new Date(a[C.timestamp]) - new Date(b[C.timestamp]));
 
-      if (rows.length === 1) {
-        mPcs = parseInt(rows[0][C.counterPcs])||0;
-        mM   = parseFloat(rows[0][C.counterM])||0;
-        // Single-row: attribute to its own day
-        const dk = new Date(rows[0][C.timestamp]).getDate();
+      for (const row of rows) {
+        const rowPcs = parseInt(row[C.counterPcs])||0;
+        const rowM   = parseFloat(row[C.counterM])||0;
+        const rowTgt = parseInt(row[C.totalTargetQty])||0;
+        mPcs    += rowPcs;
+        mM      += rowM;
+        mTarget += rowTgt;
+        // Daily calendar: attribute each job to its own day
+        const dk = new Date(row[C.timestamp]).getDate();
         if (!dayMap[dk]) dayMap[dk] = {pcs:0, m:0, rows:0};
-        dayMap[dk].pcs += mPcs;
-        dayMap[dk].m   += mM;
+        dayMap[dk].pcs  += rowPcs;
+        dayMap[dk].m    += rowM;
         dayMap[dk].rows += 1;
-      } else {
-        for (let i = 1; i < rows.length; i++) {
-          const diffPcs = Math.max(0, (parseInt(rows[i][C.counterPcs])||0) - (parseInt(rows[i-1][C.counterPcs])||0));
-          const diffM   = Math.max(0, (parseFloat(rows[i][C.counterM])||0)  - (parseFloat(rows[i-1][C.counterM])||0));
-          mPcs += diffPcs;
-          mM   += diffM;
-
-          // ✅ FIXED: attribute each diff to the CURRENT row's day (not previous)
-          const dk = new Date(rows[i][C.timestamp]).getDate();
-          if (!dayMap[dk]) dayMap[dk] = {pcs:0, m:0, rows:0};
-          dayMap[dk].pcs  += diffPcs;
-          dayMap[dk].m    += diffM;
-          dayMap[dk].rows += 1;
-        }
       }
 
-      // ✅ FIXED: target = last row's total target for this machine this month
+      // Loss codes from last row
       const lastRow = rows[rows.length - 1];
-      mTarget = parseInt(lastRow[C.totalTargetQty])||0;
-
-      // ✅ FIXED: Loss codes from last row (they are cumulative per job session)
       LOSS_CODES.forEach(code => {
         const val = formatDuration(lastRow[C[code]]);
         if (val && val !== '–' && val !== '00:00:00') {
@@ -1538,55 +1513,28 @@ function buildYearlySummary() {
     if (!rows.length) continue;
     rows.sort((a,b) => new Date(a[C.timestamp]) - new Date(b[C.timestamp]));
 
-    if (rows.length === 1) {
-      const d = new Date(rows[0][C.timestamp]);
+    // ✅ CORRECT: Each row = one completed job. SUM directly.
+    for (const row of rows) {
+      const d = new Date(row[C.timestamp]);
       const mo = d.getMonth();
-      if (mo <= curMonth) {
-        const pcs = parseInt(rows[0][C.counterPcs])||0;
-        const m   = parseFloat(rows[0][C.counterM])||0;
-        monthMap[mo].pcs += pcs;
-        monthMap[mo].m   += m;
-        monthMap[mo].activeDays.add(`${mo}-${d.getDate()}`);
-        totalActiveDays.add(`${mo}-${d.getDate()}`);
-        machineYearStats[mid].pcs += pcs;
-        machineYearStats[mid].m   += m;
-      }
-    } else {
-      for (let i = 1; i < rows.length; i++) {
-        const d = new Date(rows[i][C.timestamp]);
-        const mo = d.getMonth();
-        if (mo > curMonth) continue;
-
-        const diffPcs = Math.max(0, (parseInt(rows[i][C.counterPcs])||0) - (parseInt(rows[i-1][C.counterPcs])||0));
-        const diffM   = Math.max(0, (parseFloat(rows[i][C.counterM])||0)  - (parseFloat(rows[i-1][C.counterM])||0));
-
-        monthMap[mo].pcs += diffPcs;
-        monthMap[mo].m   += diffM;
-        const dayKey = `${mo}-${d.getDate()}`;
-        monthMap[mo].activeDays.add(dayKey);
-        totalActiveDays.add(dayKey);
-        machineYearStats[mid].pcs += diffPcs;
-        machineYearStats[mid].m   += diffM;
-      }
-    }
-
-    // ✅ FIXED: Collect target PER MONTH by scanning rows grouped by month
-    // Use the last row of each month as the authoritative target for that month
-    const rowsByMonth = {};
-    for (const r of rows) {
-      const mo = new Date(r[C.timestamp]).getMonth();
       if (mo > curMonth) continue;
-      if (!rowsByMonth[mo]) rowsByMonth[mo] = [];
-      rowsByMonth[mo].push(r);
-    }
-    for (const [mo, mRows] of Object.entries(rowsByMonth)) {
-      const lastR = mRows[mRows.length - 1];
-      const tgt = parseInt(lastR[C.totalTargetQty])||0;
-      monthMap[+mo].target += tgt;
-      yearTotalTarget += tgt;
+
+      const rowPcs = parseInt(row[C.counterPcs])||0;
+      const rowM   = parseFloat(row[C.counterM])||0;
+      const rowTgt = parseInt(row[C.totalTargetQty])||0;
+
+      monthMap[mo].pcs    += rowPcs;
+      monthMap[mo].m      += rowM;
+      monthMap[mo].target += rowTgt;
+      const dayKey = `${mo}-${d.getDate()}`;
+      monthMap[mo].activeDays.add(dayKey);
+      totalActiveDays.add(dayKey);
+      machineYearStats[mid].pcs += rowPcs;
+      machineYearStats[mid].m   += rowM;
+      yearTotalTarget += rowTgt;
     }
 
-    // Loss codes from overall last row of the year
+    // Loss codes from last row of the year for this machine
     const lastRow = rows[rows.length - 1];
     LOSS_CODES.forEach(code => {
       const val = formatDuration(lastRow[C[code]]);
