@@ -68,6 +68,56 @@
     --red-rgb:251,113,133; --idle-rgb:251,191,36;
     --hub-grad: linear-gradient(135deg, #1c1433, #2a1e4d);
   }
+  /* ── THEME: Scorecard (light + royal blue / cyan / teal, like the marketing scorecard) ── */
+  [data-theme="scorecard"] {
+    --bg:#f1f3f8; --surface:#ffffff; --surface2:#eef1f8; --border:#dde2ee;
+    --accent:#0a2a9c; --green:#14a38b; --red:#e5484d; --blue:#1f6fe0;
+    --muted:#9aa4bd; --text:#16224f; --text-dim:#667194; --idle:#f59e0b;
+    --accent-rgb:10,42,156; --green-rgb:20,163,139; --blue-rgb:31,111,224;
+    --red-rgb:229,72,77; --idle-rgb:245,158,11;
+    --hub-grad: linear-gradient(135deg, #0a2a9c, #1f6fe0);
+    --needle:#16224f;
+  }
+  [data-theme="scorecard"] header { border-bottom: 3px solid #0ea5e9; box-shadow: 0 2px 12px rgba(10,42,156,.08); }
+  [data-theme="scorecard"] .summary-card { border: none; border-radius: 14px; color:#fff; box-shadow: 0 4px 14px rgba(10,42,156,.18); }
+  [data-theme="scorecard"] .summary-card .s-label { color: rgba(255,255,255,.8); }
+  [data-theme="scorecard"] .summary-card .s-value,
+  [data-theme="scorecard"] .summary-card.running .s-value,
+  [data-theme="scorecard"] .summary-card.idle .s-value,
+  [data-theme="scorecard"] .summary-card.done .s-value { color:#fff; }
+  [data-theme="scorecard"] .summary-card               { background: linear-gradient(135deg,#0a2a9c,#1a47c8); }
+  [data-theme="scorecard"] .summary-card.running       { background: linear-gradient(135deg,#0e8f8a,#3aa6a6); }
+  [data-theme="scorecard"] .summary-card.idle          { background: linear-gradient(135deg,#e08a00,#f5b13d); }
+  [data-theme="scorecard"] .summary-card.done          { background: linear-gradient(135deg,#0284c7,#0ea5e9); }
+  [data-theme="scorecard"] .summary-card:last-child    { background: linear-gradient(135deg,#475569,#7b879c); }
+  [data-theme="scorecard"] .machine-card { border-radius: 14px; box-shadow: 0 4px 16px rgba(10,42,156,.10); }
+  [data-theme="scorecard"] .card-header { background: linear-gradient(135deg,#0a2a9c,#1f47c4); border-bottom: none; }
+  [data-theme="scorecard"] .machine-id { color:#fff; }
+  [data-theme="scorecard"] .status-badge { background:#fff; }
+  [data-theme="scorecard"] .chip { background:#fff; border-color:#dde2ee; border-top: 3px solid #1f6fe0; }
+  [data-theme="scorecard"] .chip:nth-child(2) { border-top-color:#0ea5e9; }
+  [data-theme="scorecard"] .chip:nth-child(3) { border-top-color:#3aa6a6; }
+  [data-theme="scorecard"] .chip:nth-child(4) { border-top-color:#f59e0b; }
+  [data-theme="scorecard"] .chip:nth-child(5) { border-top-color:#0a2a9c; }
+  [data-theme="scorecard"] .progress-bar-fill { background: linear-gradient(90deg,#1f6fe0,#0ea5e9,#3aa6a6); }
+  [data-theme="scorecard"] .sum-btn.analytics-hub { color:#fff; border-color:transparent; }
+  [data-theme="scorecard"] .sum-modal-header,
+  [data-theme="scorecard"] .sum-tabs { background:#0a2a9c; }
+  [data-theme="scorecard"] .sum-modal-brand .brand-label { color:#fff; }
+  [data-theme="scorecard"] .sum-modal-brand .brand-sub { color:rgba(255,255,255,.7); }
+  [data-theme="scorecard"] .sum-tab { color:rgba(255,255,255,.7); }
+  [data-theme="scorecard"] .sum-tab:hover { color:#fff; background:rgba(255,255,255,.08); }
+  [data-theme="scorecard"] .sum-tab.active.tab-day,
+  [data-theme="scorecard"] .sum-tab.active.tab-month,
+  [data-theme="scorecard"] .sum-tab.active.tab-year { color:#fff; border-bottom-color:#0ea5e9; background:rgba(255,255,255,.12); }
+  [data-theme="scorecard"] .sum-close { color:#fff; border-color:rgba(255,255,255,.35); }
+  [data-theme="scorecard"] .kpi-card.blue::before   { background:#1f6fe0; }
+  [data-theme="scorecard"] .kpi-card.green::before  { background:#3aa6a6; }
+  [data-theme="scorecard"] .kpi-card.yellow::before { background:#0ea5e9; }
+  [data-theme="scorecard"] .kpi-card.yellow .kpi-val { color:#0a2a9c; }
+  [data-theme="scorecard"] .kpi-card.purple .kpi-val { color:#0a2a9c; }
+  [data-theme="scorecard"] .kpi-card.purple::before { background:#0a2a9c; }
+  [data-theme="scorecard"] .section-title { color:#0a2a9c; }
   body, header, .summary-card, .machine-card, .chip, .gauge-mini, .sum-modal, .kpi-card {
     transition: background-color .3s, border-color .3s, color .3s;
   }
@@ -84,6 +134,7 @@
   .theme-dot[data-t="light"]  { background:linear-gradient(135deg,#ffffff 50%,#c98a00 50%); }
   .theme-dot[data-t="ocean"]  { background:linear-gradient(135deg,#06141f 50%,#29d3e0 50%); }
   .theme-dot[data-t="forest"] { background:linear-gradient(135deg,#0b110d 50%,#b8e04a 50%); }
+  .theme-dot[data-t="scorecard"] { background:linear-gradient(135deg,#0a2a9c 34%,#0ea5e9 34% 67%,#3aa6a6 67%); }
   .theme-dot[data-t="purple"] { background:linear-gradient(135deg,#0e0a18 50%,#c084fc 50%); }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -635,6 +686,7 @@
       <button class="theme-dot" data-t="light"  title="Light"  onclick="setTheme('light')"></button>
       <button class="theme-dot" data-t="ocean"  title="Ocean"  onclick="setTheme('ocean')"></button>
       <button class="theme-dot" data-t="forest" title="Forest" onclick="setTheme('forest')"></button>
+      <button class="theme-dot" data-t="scorecard" title="Scorecard" onclick="setTheme('scorecard')"></button>
       <button class="theme-dot" data-t="purple" title="Purple" onclick="setTheme('purple')"></button>
     </div>
     <div id="sync-status"><div class="sync-dot"></div><span id="sync-text">Connecting…</span></div>
